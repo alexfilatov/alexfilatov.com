@@ -6,7 +6,7 @@ const person: Person = {
   lastName: "Filatov",
   name: `Alex Filatov`,
   role: "Founder & Software Engineer",
-  avatar: "/images/avatar.jpg",
+  avatar: "/images/avatar.png",
   email: "alex@alexfilatov.com",
   location: "Europe/London",
   languages: ["English", "Ukrainian", "Russian", "Polish (beginner)", "Norwegian (learning)", "Spanish (learning)"],
