@@ -61,7 +61,7 @@ const home: Home = {
   },
   subline: (
     <>
-      I'm Alex, founder & CEO at <Text as="span" size="xl" weight="strong">Gymbile</Text>. Ex-Syft founding engineer <br /> (acquired by Indeed). I build products with Elixir, Phoenix, and a startup mindset.
+      I'm Alex, founder & CEO at <Text as="span" size="xl" weight="strong">Gymbile</Text>. Ex-Syft founding engineer <br /> (acquired by Indeed). Polyglot engineer building AI-powered products with a startup mindset.
     </>
   ),
 };
