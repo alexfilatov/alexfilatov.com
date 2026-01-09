@@ -1,0 +1,147 @@
+---
+title: "Blue-Green Deployment with Docker Swarm, Nginx, and a Single Docker Compose File"
+publishedAt: "2023-04-19"
+summary: "A practical guide to implementing zero-downtime deployments using Docker Swarm and Nginx, all configured in a single docker-compose file."
+image: "/images/blog/docker-swarm/cover.png"
+---
+
+Blue-green deployment is a release strategy that reduces downtime and risk by running two identical production environments. Only one environment is live at any time, serving all production traffic.
+
+In this guide, I'll show you how to implement blue-green deployments using Docker Swarm and Nginx, configured entirely in a single `docker-compose.yml` file.
+
+## Why Blue-Green Deployment?
+
+- **Zero downtime:** Users never experience service interruption during deployments
+- **Instant rollback:** If something goes wrong, switch back to the previous version immediately
+- **Testing in production:** Test the new version with production traffic before fully switching
+- **Reduced risk:** Issues are caught before affecting all users
+
+## The Architecture
+
+```
+                    ┌─────────────────┐
+                    │     Nginx       │
+                    │  (Load Balancer)│
+                    └────────┬────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+     ┌────────▼────────┐         ┌─────────▼────────┐
+     │   Blue Service  │         │  Green Service   │
+     │   (Active)      │         │  (Standby)       │
+     └─────────────────┘         └──────────────────┘
+```
+
+## The Docker Compose File
+
+Here's the complete configuration:
+
+```yaml
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app-blue
+      - app-green
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+
+  app-blue:
+    image: your-app:blue
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app-green:
+    image: your-app:green
+    deploy:
+      replicas: 0  # Standby - scaled to 0
+      update_config:
+        parallelism: 1
+        delay: 10s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+## Nginx Configuration
+
+```nginx
+upstream app {
+    server app-blue:3000 weight=100;
+    server app-green:3000 weight=0 backup;
+}
+
+server {
+    listen 80;
+
+    location / {
+        proxy_pass http://app;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+## Deployment Script
+
+```bash
+#!/bin/bash
+
+# Determine current active color
+CURRENT=$(docker service ls --format "{{.Name}} {{.Replicas}}" | grep "app-" | grep -v "0/0" | head -1 | cut -d'-' -f2 | cut -d' ' -f1)
+
+if [ "$CURRENT" == "blue" ]; then
+    NEW="green"
+else
+    NEW="blue"
+fi
+
+echo "Switching from $CURRENT to $NEW"
+
+# Scale up new version
+docker service scale app-$NEW=2
+
+# Wait for health checks
+sleep 30
+
+# Update nginx weights (switch traffic)
+# ... update nginx.conf and reload
+
+# Scale down old version
+docker service scale app-$CURRENT=0
+
+echo "Deployment complete: $NEW is now active"
+```
+
+## Key Points
+
+1. **Health checks are essential:** Don't switch traffic until the new version is healthy
+2. **Keep both versions deployable:** You should be able to roll back instantly
+3. **Monitor during switch:** Watch logs and metrics during the transition
+4. **Automate everything:** Manual steps introduce risk
+
+## Conclusion
+
+Blue-green deployment with Docker Swarm provides a robust, simple approach to zero-downtime deployments. With proper health checks and automation, you can deploy with confidence knowing that rollback is always just one command away.

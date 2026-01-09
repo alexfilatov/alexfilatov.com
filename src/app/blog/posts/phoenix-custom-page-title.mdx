@@ -1,0 +1,149 @@
+---
+title: "How to Make Custom Page Title in Phoenix Framework"
+publishedAt: "2020-05-20"
+summary: "A quick guide to implementing SEO-friendly custom page titles in Phoenix Framework using helper functions and pattern matching."
+image: "/images/blog/phoenix-title/cover.png"
+---
+
+Setting proper page titles is essential for SEO and user experience. Here's how to implement dynamic, custom page titles in Phoenix Framework.
+
+## The Problem
+
+By default, Phoenix applications have a static title defined in the root layout. But for SEO, each page should have a unique, descriptive title.
+
+## The Solution
+
+We'll use a helper function with pattern matching to generate page-specific titles.
+
+### Step 1: Create a Title Helper
+
+In `lib/my_app_web/views/layout_helpers.ex`:
+
+```elixir
+defmodule MyAppWeb.LayoutHelpers do
+  @app_name "MyApp"
+
+  def page_title(assigns) do
+    title = get_page_title(assigns)
+    if title do
+      "#{title} | #{@app_name}"
+    else
+      @app_name
+    end
+  end
+
+  defp get_page_title(%{page_title: title}), do: title
+  defp get_page_title(%{view_module: view, view_template: template}) do
+    view_title(view, template)
+  end
+  defp get_page_title(_), do: nil
+
+  # Define titles for specific views/templates
+  defp view_title(MyAppWeb.PageView, "index.html"), do: "Home"
+  defp view_title(MyAppWeb.PageView, "about.html"), do: "About Us"
+  defp view_title(MyAppWeb.UserView, "index.html"), do: "Users"
+  defp view_title(MyAppWeb.UserView, "show.html"), do: "User Profile"
+  defp view_title(_, _), do: nil
+end
+```
+
+### Step 2: Update Root Layout
+
+In `lib/my_app_web/templates/layout/root.html.heex`:
+
+```heex
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= page_title(assigns) %></title>
+    <!-- other head content -->
+  </head>
+  <body>
+    <%= @inner_content %>
+  </body>
+</html>
+```
+
+### Step 3: Import the Helper
+
+In `lib/my_app_web.ex`, add to the `view_helpers` function:
+
+```elixir
+defp view_helpers do
+  quote do
+    # ... existing imports
+    import MyAppWeb.LayoutHelpers
+  end
+end
+```
+
+## Dynamic Titles
+
+For pages with dynamic content (like user profiles), pass the title from the controller:
+
+```elixir
+def show(conn, %{"id" => id}) do
+  user = Accounts.get_user!(id)
+
+  conn
+  |> assign(:page_title, user.name)
+  |> render("show.html", user: user)
+end
+```
+
+## LiveView Support
+
+For LiveView, set the title in `mount/3`:
+
+```elixir
+def mount(_params, _session, socket) do
+  {:ok, assign(socket, page_title: "Dashboard")}
+end
+```
+
+Or update it dynamically:
+
+```elixir
+def handle_event("select_item", %{"id" => id}, socket) do
+  item = Items.get!(id)
+  {:noreply, assign(socket, page_title: item.name)}
+end
+```
+
+## SEO Best Practices
+
+1. **Keep titles under 60 characters** - Google truncates longer titles
+2. **Put important keywords first** - "Product Name | Company" not "Company | Product Name"
+3. **Make each title unique** - No duplicate titles across your site
+4. **Be descriptive** - Tell users what the page is about
+
+## Complete Example
+
+```elixir
+defmodule MyAppWeb.LayoutHelpers do
+  @app_name "MyApp"
+  @max_length 60
+
+  def page_title(assigns) do
+    base_title = get_page_title(assigns)
+    full_title = build_title(base_title)
+    truncate_title(full_title)
+  end
+
+  defp build_title(nil), do: @app_name
+  defp build_title(title), do: "#{title} | #{@app_name}"
+
+  defp truncate_title(title) when byte_size(title) <= @max_length, do: title
+  defp truncate_title(title) do
+    title
+    |> String.slice(0, @max_length - 3)
+    |> Kernel.<>("...")
+  end
+
+  # ... rest of the implementation
+end
+```
+
+## Conclusion
+
+With pattern matching and helper functions, Phoenix makes it easy to implement SEO-friendly page titles. This approach is clean, maintainable, and works seamlessly with both traditional views and LiveView.

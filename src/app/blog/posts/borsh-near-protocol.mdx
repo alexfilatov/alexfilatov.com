@@ -1,0 +1,149 @@
+---
+title: "BORSH — Binary Serializer for NEAR Protocol"
+publishedAt: "2022-12-20"
+summary: "Deep dive into BORSH, the binary serialization format used by NEAR Protocol, and how to work with it in various programming languages."
+image: "/images/blog/borsh/cover.jpg"
+---
+
+BORSH (Binary Object Representation Serializer for Hashing) is a binary serialization format designed specifically for the NEAR blockchain protocol. In this article, I'll explain what BORSH is, why it exists, and how to use it.
+
+## What is Serialization?
+
+Serialization is the process of converting data structures into a format that can be stored or transmitted. Common formats include:
+
+- **JSON:** Human-readable, widely supported, but verbose
+- **Protocol Buffers:** Efficient binary format by Google
+- **MessagePack:** Binary JSON alternative
+- **BORSH:** Deterministic binary format for blockchain
+
+## Why BORSH?
+
+NEAR Protocol needed a serialization format with specific properties:
+
+1. **Deterministic:** The same data always produces the same binary output
+2. **Efficient:** Minimal overhead for blockchain storage
+3. **Simple:** Easy to implement in multiple languages
+4. **Self-describing:** No schema negotiation required
+
+JSON fails the determinism test (key ordering varies), and other formats had unnecessary complexity.
+
+## BORSH Specification
+
+### Primitive Types
+
+| Type | Encoding |
+|------|----------|
+| `u8` | 1 byte |
+| `u16` | 2 bytes, little-endian |
+| `u32` | 4 bytes, little-endian |
+| `u64` | 8 bytes, little-endian |
+| `u128` | 16 bytes, little-endian |
+| `bool` | 1 byte (0 or 1) |
+| `string` | 4-byte length + UTF-8 bytes |
+
+### Complex Types
+
+**Arrays:** Length prefix (4 bytes) + elements
+
+```
+[1, 2, 3] → 03 00 00 00 01 02 03
+```
+
+**Structs:** Fields serialized in order
+
+```rust
+struct Point { x: u32, y: u32 }
+Point { x: 10, y: 20 } → 0A 00 00 00 14 00 00 00
+```
+
+**Enums:** Variant index (1 byte) + variant data
+
+## Implementations
+
+BORSH has implementations in multiple languages:
+
+### Rust (Reference)
+```rust
+use borsh::{BorshSerialize, BorshDeserialize};
+
+#[derive(BorshSerialize, BorshDeserialize)]
+struct Account {
+    balance: u128,
+    nonce: u64,
+}
+```
+
+### JavaScript
+```javascript
+const borsh = require('borsh');
+
+class Account {
+    constructor(balance, nonce) {
+        this.balance = balance;
+        this.nonce = nonce;
+    }
+}
+
+const schema = new Map([
+    [Account, { kind: 'struct', fields: [
+        ['balance', 'u128'],
+        ['nonce', 'u64']
+    ]}]
+]);
+
+const account = new Account(1000n, 1);
+const encoded = borsh.serialize(schema, account);
+```
+
+### Elixir
+
+I created an Elixir implementation: [github.com/alexfilatov/borsh](https://github.com/alexfilatov/borsh)
+
+```elixir
+defmodule Account do
+  @derive Borsh.Encoder
+  defstruct [:balance, :nonce]
+end
+
+account = %Account{balance: 1000, nonce: 1}
+encoded = Borsh.encode(account)
+```
+
+## Working with NEAR Protocol
+
+BORSH is used throughout NEAR for:
+
+- **Transaction serialization:** Signing and submitting transactions
+- **State storage:** Contract state is BORSH-encoded
+- **Cross-contract calls:** Arguments and return values
+
+### Example: Transaction Signing
+
+```javascript
+const nearAPI = require('near-api-js');
+const borsh = require('borsh');
+
+// Transaction is serialized with BORSH before signing
+const serializedTx = borsh.serialize(
+    nearAPI.transactions.SCHEMA,
+    transaction
+);
+const hash = sha256(serializedTx);
+const signature = sign(hash, privateKey);
+```
+
+## Common Pitfalls
+
+1. **Byte order:** BORSH uses little-endian; don't assume big-endian
+2. **String encoding:** Always UTF-8, with 4-byte length prefix
+3. **Optional fields:** Encoded as 0 (None) or 1 + value (Some)
+4. **Enum indices:** Start at 0, must match definition order
+
+## Conclusion
+
+BORSH provides a simple, deterministic binary format perfect for blockchain applications. Its implementations in Rust, JavaScript, Elixir, and other languages make it accessible for building NEAR Protocol applications.
+
+For more details, check out:
+- [BORSH Specification](https://borsh.io)
+- [My Elixir Implementation](https://github.com/alexfilatov/borsh)
+- [NEAR Protocol Docs](https://docs.near.org)

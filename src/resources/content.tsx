@@ -2,48 +2,33 @@ import { About, Blog, Gallery, Home, Newsletter, Person, Social, Work } from "@/
 import { Line, Row, Text } from "@once-ui-system/core";
 
 const person: Person = {
-  firstName: "Selene",
-  lastName: "Yu",
-  name: `Selene Yu`,
-  role: "Design Engineer",
+  firstName: "Alex",
+  lastName: "Filatov",
+  name: `Alex Filatov`,
+  role: "Founder & Software Engineer",
   avatar: "/images/avatar.jpg",
-  email: "example@gmail.com",
-  location: "Asia/Jakarta", // Expecting the IANA time zone identifier, e.g., 'Europe/Vienna'
-  languages: ["English", "Bahasa"], // optional: Leave the array empty if you don't want to display languages
+  email: "alex@alexfilatov.com",
+  location: "Europe/London",
+  languages: ["English", "Ukrainian", "Russian", "Polish (beginner)", "Norwegian (learning)", "Spanish (learning)"],
 };
 
 const newsletter: Newsletter = {
-  display: true,
+  display: false,
   title: <>Subscribe to {person.firstName}'s Newsletter</>,
-  description: <>My weekly newsletter about creativity and engineering</>,
+  description: <>Updates on new projects and tech insights</>,
 };
 
 const social: Social = [
-  // Links are automatically displayed.
-  // Import new icons in /once-ui/icons.ts
-  // Set essentials: true for links you want to show on the about page
   {
     name: "GitHub",
     icon: "github",
-    link: "https://github.com/once-ui-system",
+    link: "https://github.com/alexfilatov",
     essential: true,
   },
   {
     name: "LinkedIn",
     icon: "linkedin",
-    link: "https://www.linkedin.com/company/once-ui/",
-    essential: true,
-  },
-  {
-    name: "Instagram",
-    icon: "instagram",
-    link: "https://www.instagram.com/once_ui/",
-    essential: false,
-  },
-  {
-    name: "Threads",
-    icon: "threads",
-    link: "https://www.threads.com/@once_ui",
+    link: "https://www.linkedin.com/in/alexfilatov",
     essential: true,
   },
   {
@@ -58,26 +43,26 @@ const home: Home = {
   path: "/",
   image: "/images/og/home.jpg",
   label: "Home",
-  title: `${person.name}'s Portfolio`,
-  description: `Portfolio website showcasing my work as a ${person.role}`,
-  headline: <>Building bridges between design and code</>,
+  title: `${person.name} - Founder & Software Engineer`,
+  description: `Founding engineer at Syft (acquired by Indeed). Building products that work and last.`,
+  headline: <>Building products that work and last</>,
   featured: {
     display: true,
     title: (
       <Row gap="12" vertical="center">
-        <strong className="ml-4">Once UI</strong>{" "}
+        <strong className="ml-4">Gymbile</strong>{" "}
         <Line background="brand-alpha-strong" vert height="20" />
         <Text marginRight="4" onBackground="brand-medium">
-          Featured work
+          Current venture
         </Text>
       </Row>
     ),
-    href: "/work/building-once-ui-a-customizable-design-system",
+    href: "/work/gymbile",
   },
   subline: (
     <>
-    I'm Selene, a design engineer at <Text as="span" size="xl" weight="strong">ONCE UI</Text>, where I craft intuitive <br /> user experiences. After hours, I build my own projects.
-</>
+      I'm Alex, founder & CEO at <Text as="span" size="xl" weight="strong">Gymbile</Text>. Ex-Syft founding engineer <br /> (acquired by Indeed). I build products with Elixir, Phoenix, and a startup mindset.
+    </>
   ),
 };
 
@@ -85,7 +70,7 @@ const about: About = {
   path: "/about",
   label: "About",
   title: `About – ${person.name}`,
-  description: `Meet ${person.name}, ${person.role} from ${person.location}`,
+  description: `Meet ${person.name}, ${person.role} based in London, UK`,
   tableOfContent: {
     display: true,
     subItems: false,
@@ -94,7 +79,7 @@ const about: About = {
     display: true,
   },
   calendar: {
-    display: true,
+    display: false,
     link: "https://cal.com",
   },
   intro: {
@@ -102,52 +87,136 @@ const about: About = {
     title: "Introduction",
     description: (
       <>
-        Selene is a Jakarta-based design engineer with a passion for transforming complex challenges
-        into simple, elegant design solutions. Her work spans digital interfaces, interactive
-        experiences, and the convergence of design and technology.
+        Started building products long before startups were cool. Founding engineer at Syft,
+        acquired by Indeed in 2019. Still obsessed with creating things that work and last.
+        Now running Gymbile and building the future of fitness tech.
       </>
     ),
   },
   work: {
-    display: true, // set to false to hide this section
+    display: true,
     title: "Work Experience",
     experiences: [
       {
-        company: "FLY",
-        timeframe: "2022 - Present",
-        role: "Senior Design Engineer",
+        company: "Gymbile",
+        timeframe: "Aug 2025 - Present",
+        role: "Founder & CEO",
         achievements: [
           <>
-            Redesigned the UI/UX for the FLY platform, resulting in a 20% increase in user
-            engagement and 30% faster load times.
+            Building an all-in-one platform connecting personal trainers with clients worldwide.
           </>,
           <>
-            Spearheaded the integration of AI tools into design workflows, enabling designers to
-            iterate 50% faster.
+            Live interactive sessions, flexible payments, and comprehensive client management tools.
           </>,
         ],
-        images: [
-          // optional: leave the array empty if you don't want to display images
-          {
-            src: "/images/projects/project-01/cover-01.jpg",
-            alt: "Once UI Project",
-            width: 16,
-            height: 9,
-          },
-        ],
+        images: [],
       },
       {
-        company: "Creativ3",
-        timeframe: "2018 - 2022",
-        role: "Lead Designer",
+        company: "Indeed",
+        timeframe: "Apr 2023 - Aug 2025",
+        role: "Senior Software Engineer",
         achievements: [
           <>
-            Developed a design system that unified the brand across multiple platforms, improving
-            design consistency by 40%.
+            Leading engineer for Flex Levels, a platform feature that adjusts user status tiers using EWMA-based points decay.
           </>,
           <>
-            Led a cross-functional team to launch a new product line, contributing to a 15% increase
-            in overall company revenue.
+            Mentoring junior engineers and promoting best practices in code quality and test strategy.
+          </>,
+          <>
+            Collaborating cross-functionally with product and data teams to ensure business goals and technical excellence.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "Indeed Flex (Syft)",
+        timeframe: "Jun 2017 - Apr 2023",
+        role: "Senior Software Engineer",
+        achievements: [
+          <>
+            Joined as one of the first engineers, contributed to 20% of the codebase before acquisition.
+          </>,
+          <>
+            Played a key role in scaling the platform through acquisition by Indeed in 2019.
+          </>,
+          <>
+            Worked across architecture, product dev, process improvements, mentoring, and production firefighting.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "SHOPYBOT",
+        timeframe: "Apr 2017 - Jan 2022",
+        role: "Technical Founder",
+        achievements: [
+          <>
+            Built a chatbot platform for online stores from scratch with Elixir/Phoenix backend.
+          </>,
+          <>
+            Grew to over 1,300 customers through bootstrapped growth and product-led development.
+          </>,
+          <>
+            Engineered WordPress plugins, WooCommerce integrations, and AWS infrastructure.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "CXRATE",
+        timeframe: "Dec 2011 - Oct 2017",
+        role: "Technical Founder",
+        achievements: [
+          <>
+            Built one of the top local FX rate platforms in Ukraine for finding best currency exchange deals.
+          </>,
+          <>
+            Won $60,000 from Facebook FbStart program for the service.
+          </>,
+          <>
+            Developed backend, API, and oversaw iOS + Android mobile apps.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "Reach2Stars Inc.",
+        timeframe: "Aug 2016 - Feb 2017",
+        role: "Technical Co-Founder & CTO",
+        achievements: [
+          <>
+            Built a platform connecting celebrities with fans while supporting charitable causes using Elixir and Phoenix.
+          </>,
+          <>
+            Designed and implemented real-time all-pay auction feature.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "ipmedia AG",
+        timeframe: "Jul 2010 - Oct 2017",
+        role: "Senior Software Engineer",
+        achievements: [
+          <>
+            Developed adaptive video streaming platform (Internettv.ch, YoveoTV) with PHP5, Symfony, MySQL, RabbitMQ.
+          </>,
+          <>
+            Built Samsung SmartTV app and robust video publishing infrastructure.
+          </>,
+        ],
+        images: [],
+      },
+      {
+        company: "Infopulse Ukraine",
+        timeframe: "Apr 2007 - Oct 2009",
+        role: "Director of Engineering - Web Development",
+        achievements: [
+          <>
+            Led and managed a team of 10 developers across multiple web development projects.
+          </>,
+          <>
+            Secured contracts with European and American customers including General Electric, Chevron, and Philips.
           </>,
         ],
         images: [],
@@ -155,78 +224,86 @@ const about: About = {
     ],
   },
   studies: {
-    display: true, // set to false to hide this section
-    title: "Studies",
+    display: true,
+    title: "Education",
     institutions: [
       {
-        name: "University of Jakarta",
-        description: <>Studied software engineering.</>,
-      },
-      {
-        name: "Build the Future",
-        description: <>Studied online marketing and personal branding.</>,
+        name: "Lviv State University 'Lvivska Polytechnika'",
+        description: <>Bachelor's degree in GIS (1995 - 1999)</>,
       },
     ],
   },
   technical: {
-    display: true, // set to false to hide this section
-    title: "Technical skills",
+    display: true,
+    title: "Technical Skills",
     skills: [
       {
-        title: "Figma",
+        title: "Elixir & Phoenix",
         description: (
-          <>Able to prototype in Figma with Once UI with unnatural speed.</>
+          <>Expert in building scalable, fault-tolerant applications with Elixir, Phoenix, and OTP. Author of open-source libraries including LiveKit SDK, BORSH serializer, and NEAR API.</>
         ),
         tags: [
           {
-            name: "Figma",
-            icon: "figma",
-          },
-        ],
-        // optional: leave the array empty if you don't want to display images
-        images: [
-          {
-            src: "/images/projects/project-01/cover-02.jpg",
-            alt: "Project image",
-            width: 16,
-            height: 9,
+            name: "Elixir",
+            icon: "elixir",
           },
           {
-            src: "/images/projects/project-01/cover-03.jpg",
-            alt: "Project image",
-            width: 16,
-            height: 9,
+            name: "Phoenix",
+            icon: "phoenix",
           },
         ],
+        images: [],
       },
       {
-        title: "Next.js",
+        title: "Cloud & Infrastructure",
         description: (
-          <>Building next gen apps with Next.js + Once UI + Supabase.</>
+          <>Extensive experience with AWS, Kubernetes, and building robust infrastructure for high-scale applications.</>
         ),
         tags: [
           {
-            name: "JavaScript",
-            icon: "javascript",
+            name: "AWS",
+            icon: "aws",
           },
           {
-            name: "Next.js",
-            icon: "nextjs",
-          },
-          {
-            name: "Supabase",
-            icon: "supabase",
+            name: "Kubernetes",
+            icon: "kubernetes",
           },
         ],
-        // optional: leave the array empty if you don't want to display images
-        images: [
+        images: [],
+      },
+      {
+        title: "Full-Stack Development",
+        description: (
+          <>Building complete products from backend APIs to frontend interfaces, mobile apps, and everything in between.</>
+        ),
+        tags: [
           {
-            src: "/images/projects/project-01/cover-04.jpg",
-            alt: "Project image",
-            width: 16,
-            height: 9,
+            name: "TypeScript",
+            icon: "typescript",
+          },
+          {
+            name: "React",
+            icon: "react",
+          },
+          {
+            name: "PostgreSQL",
+            icon: "postgresql",
           },
         ],
+        images: [],
+      },
+      {
+        title: "Blockchain & Web3",
+        description: (
+          <>Experience with NEAR Protocol, blockchain DApps development, and binary serialization (BORSH).</>
+        ),
+        tags: [
+          {
+            name: "Blockchain",
+            icon: "blockchain",
+          },
+        ],
+        images: [],
       },
     ],
   },
@@ -235,70 +312,23 @@ const about: About = {
 const blog: Blog = {
   path: "/blog",
   label: "Blog",
-  title: "Writing about design and tech...",
+  title: "Writing about tech and startups...",
   description: `Read what ${person.name} has been up to recently`,
-  // Create new blog posts by adding a new .mdx file to app/blog/posts
-  // All posts will be listed on the /blog route
 };
 
 const work: Work = {
   path: "/work",
   label: "Work",
   title: `Projects – ${person.name}`,
-  description: `Design and dev projects by ${person.name}`,
-  // Create new project pages by adding a new .mdx file to app/blog/posts
-  // All projects will be listed on the /home and /work routes
+  description: `Startups and projects by ${person.name}`,
 };
 
 const gallery: Gallery = {
   path: "/gallery",
   label: "Gallery",
-  title: `Photo gallery – ${person.name}`,
-  description: `A photo collection by ${person.name}`,
-  // Images by https://lorant.one
-  // These are placeholder images, replace with your own
-  images: [
-    {
-      src: "/images/gallery/horizontal-1.jpg",
-      alt: "image",
-      orientation: "horizontal",
-    },
-    {
-      src: "/images/gallery/vertical-4.jpg",
-      alt: "image",
-      orientation: "vertical",
-    },
-    {
-      src: "/images/gallery/horizontal-3.jpg",
-      alt: "image",
-      orientation: "horizontal",
-    },
-    {
-      src: "/images/gallery/vertical-1.jpg",
-      alt: "image",
-      orientation: "vertical",
-    },
-    {
-      src: "/images/gallery/vertical-2.jpg",
-      alt: "image",
-      orientation: "vertical",
-    },
-    {
-      src: "/images/gallery/horizontal-2.jpg",
-      alt: "image",
-      orientation: "horizontal",
-    },
-    {
-      src: "/images/gallery/horizontal-4.jpg",
-      alt: "image",
-      orientation: "horizontal",
-    },
-    {
-      src: "/images/gallery/vertical-3.jpg",
-      alt: "image",
-      orientation: "vertical",
-    },
-  ],
+  title: `Gallery – ${person.name}`,
+  description: `A collection by ${person.name}`,
+  images: [],
 };
 
 export { person, social, newsletter, home, about, blog, work, gallery };

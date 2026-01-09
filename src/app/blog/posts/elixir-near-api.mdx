@@ -1,0 +1,181 @@
+---
+title: "Elixir API for NEAR Blockchain"
+publishedAt: "2022-05-18"
+summary: "Introducing near-api-ex, an Elixir library for building decentralized applications on the NEAR Protocol blockchain."
+image: "/images/blog/near-api/cover.png"
+---
+
+I'm excited to introduce **near-api-ex**, an Elixir library for interacting with the NEAR Protocol blockchain. This library enables Elixir developers to build decentralized applications (DApps) on NEAR.
+
+## Why NEAR Protocol?
+
+NEAR is a layer-1 blockchain designed for usability:
+
+- **Human-readable accounts:** `alice.near` instead of `0x7f3d8...`
+- **Low transaction fees:** Fractions of a cent
+- **Fast finality:** ~1-2 seconds
+- **Developer-friendly:** Easy onboarding for web developers
+
+## Why Elixir?
+
+Elixir's strengths make it excellent for blockchain development:
+
+- **Concurrency:** Handle many concurrent requests efficiently
+- **Fault tolerance:** OTP supervision trees for reliability
+- **Real-time:** Phoenix Channels for WebSocket subscriptions
+- **Functional:** Immutable data fits blockchain semantics
+
+## Installation
+
+Add to your `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:near_api, "~> 0.1.0"}
+  ]
+end
+```
+
+## Configuration
+
+```elixir
+# config/config.exs
+config :near_api,
+  network: :testnet,  # or :mainnet
+  node_url: "https://rpc.testnet.near.org"
+```
+
+## Basic Usage
+
+### Viewing Account Information
+
+```elixir
+{:ok, account} = NearApi.Account.view("example.testnet")
+
+IO.inspect(account)
+# %{
+#   amount: "1000000000000000000000000",
+#   locked: "0",
+#   code_hash: "11111111111111111111111111111111",
+#   storage_usage: 182,
+#   ...
+# }
+```
+
+### Checking Balance
+
+```elixir
+{:ok, balance} = NearApi.Account.get_balance("alice.testnet")
+# Returns balance in yoctoNEAR (10^-24 NEAR)
+```
+
+### Calling View Methods
+
+```elixir
+{:ok, result} = NearApi.Contract.view_function(
+  "contract.testnet",
+  "get_greeting",
+  %{}
+)
+```
+
+## Advanced Usage
+
+### Sending Transactions
+
+First, set up your account credentials:
+
+```elixir
+account = NearApi.Account.new(
+  "your-account.testnet",
+  "ed25519:YOUR_PRIVATE_KEY"
+)
+```
+
+Then send a transaction:
+
+```elixir
+{:ok, result} = NearApi.Account.function_call(
+  account,
+  "contract.testnet",
+  "set_greeting",
+  %{message: "Hello from Elixir!"},
+  gas: 30_000_000_000_000,
+  deposit: 0
+)
+```
+
+### Creating Accounts
+
+```elixir
+{:ok, result} = NearApi.Account.create_account(
+  parent_account,
+  "new-account.testnet",
+  public_key,
+  initial_balance: 1_000_000_000_000_000_000_000_000  # 1 NEAR
+)
+```
+
+### Deploying Contracts
+
+```elixir
+wasm_bytes = File.read!("contract.wasm")
+
+{:ok, result} = NearApi.Account.deploy_contract(
+  account,
+  wasm_bytes
+)
+```
+
+## Real-Time Updates
+
+Using Phoenix Channels, you can subscribe to account changes:
+
+```elixir
+defmodule MyApp.NearChannel do
+  use Phoenix.Channel
+
+  def join("near:account:" <> account_id, _params, socket) do
+    NearApi.Subscription.subscribe_account(account_id)
+    {:ok, socket}
+  end
+
+  def handle_info({:account_update, data}, socket) do
+    push(socket, "update", data)
+    {:noreply, socket}
+  end
+end
+```
+
+## Error Handling
+
+The library uses tagged tuples for error handling:
+
+```elixir
+case NearApi.Account.view("nonexistent.testnet") do
+  {:ok, account} ->
+    process_account(account)
+  {:error, %{type: "UNKNOWN_ACCOUNT"}} ->
+    Logger.warn("Account not found")
+  {:error, reason} ->
+    Logger.error("Error: #{inspect(reason)}")
+end
+```
+
+## Contributing
+
+The library is open source: [github.com/alexfilatov/near-api-ex](https://github.com/alexfilatov/near-api-ex)
+
+Contributions welcome! Areas that need work:
+
+- Access key management
+- More RPC method coverage
+- Better documentation
+- Integration tests
+
+## Conclusion
+
+near-api-ex brings the power of NEAR Protocol to the Elixir ecosystem. Whether you're building a DeFi application, an NFT marketplace, or any other blockchain-based system, Elixir's concurrency and fault tolerance make it an excellent choice.
+
+Check out the [GitHub repo](https://github.com/alexfilatov/near-api-ex) for more examples and documentation.
