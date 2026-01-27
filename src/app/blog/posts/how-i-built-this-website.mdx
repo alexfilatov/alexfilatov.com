@@ -1,0 +1,66 @@
+---
+title: "How I Built This Website in 30 Minutes with Claude"
+publishedAt: "2026-01-27"
+summary: "I used Claude AI to create my entire portfolio website from a single prompt. Here's exactly how I did it, so you can do the same."
+---
+
+## The Challenge
+
+I needed a personal portfolio website but didn't want to spend days designing and coding it from scratch. I wanted something that looked professional, was easy to maintain, and showcased my work effectively.
+
+## The Solution: One Prompt
+
+I used Claude (with Claude Code) and a single prompt to generate my entire portfolio. Here's the exact prompt I used:
+
+```
+I want you to create me my personal website/portfolio.
+
+As a base use this template:
+git clone https://github.com/once-ui-system/magic-portfolio.git
+
+For data (skills, experience, projects) go to:
+- My GitHub: <YOUR_GITHUB_URL>
+- My LinkedIn profile (in the attached PDF file)
+- My recent projects from: <YOUR_COMPANY_OR_PROJECTS_URL>
+
+Make project deployable to Vercel
+```
+
+That's it. Claude handled:
+- Cloning and setting up the template
+- Extracting my work history from LinkedIn
+- Pulling project information from my company website
+- Configuring all the content files
+- Setting up Vercel deployment
+
+## The Stack
+
+The website is built with:
+- **Next.js 16** - React framework with App Router
+- **Once UI** - Design system for consistent styling
+- **MDX** - Markdown with JSX for blog posts and project pages
+- **Vercel** - Deployment and hosting
+
+## Try It Yourself
+
+1. Have your LinkedIn profile exported as PDF
+2. Gather links to your GitHub and any project showcases
+3. Use the prompt above with Claude Code
+4. Deploy to Vercel
+
+The entire process took about 30 minutes, most of which was Claude reading my profiles and generating content.
+
+## What I Customized After
+
+After the initial generation, I made a few tweaks:
+- Added custom project screenshots
+- Fine-tuned some of the copy
+- Added this blog post
+
+The magic portfolio template from Once UI made it easy to customize further through simple TypeScript configuration files.
+
+## Resources
+
+- [Magic Portfolio Template](https://github.com/once-ui-system/magic-portfolio)
+- [Once UI Design System](https://once-ui.com)
+- [Claude Code](https://claude.ai/code)
