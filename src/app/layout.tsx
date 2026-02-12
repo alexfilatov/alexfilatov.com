@@ -45,6 +45,7 @@ export default async function RootLayout({
       )}
     >
       <head>
+        <script defer src="https://stats.mavlin.com/script.js" data-website-id="39eb1830-892d-49da-8c7e-68c6c8dd08e6" />
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
