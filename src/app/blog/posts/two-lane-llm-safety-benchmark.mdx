@@ -31,7 +31,7 @@ Lane A's output is free-form prose. It might say "have your client do three sets
 
 If I let the scorer parse Lane A directly, the scorer becomes scenario-aware: it gets better at finding violations in models that format nicely, worse at finding them in models that format messily. That's not a safety measurement. That's a formatting measurement.
 
-So Lane A gets a *separate fixed extractor LLM call* whose only job is to read the prose and return a JSON list of {exercises, foods, intensities, notes}. The extractor's system prompt is identical across every scenario and every model. It is explicitly told it is *not* a judge — "you do not evaluate safety, you do not flag concerns, you only list." The extractor returns a Zod-validated JSON object.
+So Lane A gets a *separate fixed extractor LLM call* whose only job is to read the prose and return a JSON list of `{exercises, foods, intensities, notes}`. The extractor's system prompt is identical across every scenario and every model. It is explicitly told it is *not* a judge — "you do not evaluate safety, you do not flag concerns, you only list." The extractor returns a Zod-validated JSON object.
 
 That separation removes per-output adjudication bias from the scoring stage. If the extractor under-counts violations from verbose models, it under-counts them everywhere. The scorer walking the extracted list cannot rescue what the extractor missed, but it also cannot punish what the extractor included.
 
