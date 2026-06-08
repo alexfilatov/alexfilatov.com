@@ -1,0 +1,95 @@
+---
+title: "Bigger LLMs Aren't Safer. They're More Confident."
+publishedAt: "2026-06-07"
+summary: "The cross-vendor extension of the WPL safety benchmark to Anthropic produced a result the OpenAI-only paper had hinted at but couldn't prove: the flagship in each vendor's lineup was the worst raw-safety performer. Capability and safety are not the same axis, and the data is stronger than the marketing."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/bigger-llms-arent-safer/cover.jpg"
+---
+
+The v0.5 paper ran on the OpenAI lineup: GPT-5, GPT-5-mini, GPT-5-nano, GPT-4.1. The headline within-OpenAI result was already counterintuitive: the older, non-reasoning GPT-4.1 was the safest model at default settings. The hypothesis we offered was a model-class effect — with default "minimal" reasoning, the GPT-5 family elaborates more freely, produces longer plans, and longer plans introduce more blacklisted content.
+
+That hypothesis predicts something testable. If the pattern is *capability* and not *vendor*, then the cross-vendor extension to Anthropic should show the same shape: the flagship in the Claude lineup should be the worst raw-safety performer, and the cheapest should be among the safest.
+
+In v0.6, I ran it. Here's the data.
+
+## The cross-vendor leaderboard
+
+Lane A single-turn safety violations, 15 medical fitness scenarios per model, no governance:
+
+<Table
+  data={{
+    headers: [
+      { content: "Model", key: "model" },
+      { content: "Vendor", key: "vendor" },
+      { content: "Violations", key: "violations" },
+      { content: "Rank", key: "rank" },
+    ],
+    rows: [
+      ["GPT-4.1", "OpenAI", "28", "1 (safest)"],
+      ["Claude Haiku 4.5", "Anthropic", "28", "1 (safest)"],
+      ["GPT-5-nano", "OpenAI", "29", "3"],
+      ["Claude Sonnet 4.6", "Anthropic", "56", "4"],
+      ["GPT-5-mini", "OpenAI", "59", "5"],
+      ["GPT-5", "OpenAI", "91", "6"],
+      ["Claude Opus 4.7", "Anthropic", "114", "7 (least safe)"],
+    ],
+  }}
+/>
+
+Two things to read off this table that the OpenAI-only data couldn't have told you:
+
+1. **The flagship pattern reproduces across vendors.** Anthropic's flagship (Opus 4.7) is the least-safe model in the lineup. OpenAI's flagship (GPT-5) is the second-least-safe. The two cheapest models (Haiku, GPT-4.1) are tied for safest. This is not a vendor problem. It's a tier problem.
+
+2. **Cross-vendor at-tier is approximately commodity for safety.** Haiku ≈ GPT-4.1 ≈ GPT-5-nano. Sonnet ≈ GPT-5-mini. The within-tier vendor gaps are smaller than the across-tier gaps in the same vendor. If you pick a tier, you can largely pick a vendor on other criteria.
+
+## The mechanism, sharpened
+
+Here's the hypothesis from the OpenAI-only paper:
+
+> Default minimal reasoning makes the GPT-5 family elaborate more freely, producing longer plans. Longer plans introduce more blacklisted content. Per-prescription error rate may be similar; absolute violation count rises with verbosity.
+
+The cross-vendor data lets me sharpen this. The pattern isn't reasoning-mode specific. It isn't vendor specific. It's capability specific. More capable models — whatever the vendor, whatever the reasoning configuration — generate longer, more elaborate, more confident outputs. The Lane A scorer counts violations as absolute occurrences; more output is more violations.
+
+This is consistent with the reasoning-effort sensitivity result the paper documents for GPT-5: the flagship benefits *monotonically* from more reasoning effort, while the mid-tier and cheap models get *less* safe with more reasoning. The flagship can think its way out of a contraindicated prescription; the small models, given more thinking budget, just produce more confidently broken plans.
+
+In the v0.6 Anthropic data, the picture is consistent. Opus 4.7's outputs are longer than Haiku's. Opus has a new tokenizer (~35% more tokens versus Opus 4.1, vendor-disclosed) and rejects the temperature parameter entirely. Even controlling for those mechanical differences as best I can, Opus writes more prescriptions per prompt, more confidently, with a higher absolute count of contraindicated ones.
+
+The label "Opus is unsafe" is editorial. The measurable claim is: **Opus's raw output without governance has more violations than smaller models on the same scenarios.** That is what the data says. Whether you call that "unsafe" is a values question downstream of the measurement.
+
+## What this means for "AI safety" as a marketing claim
+
+There's a thing AI vendors do — all of them — where the larger models in a lineup get described as both more capable *and* safer. Better reasoning, better alignment, better refusal behavior, better edge-case handling. The implicit framing is that capability and safety move together: the more capable model is also the more responsible one.
+
+The v0.6 cross-vendor data shows this is, at least for one specific deployment pattern, exactly backwards. The most capable models in two vendors' lineups produced the *most* violations of clinical contraindications when deployed in the way consumer AI products actually deploy them: raw prose, free-form prompt, no structural validation downstream.
+
+I don't think this is because the labs are lying. I think the safety evaluations the labs run — the ones that make it into model cards — are measuring different failure modes. Refusal behavior on overtly dangerous prompts. Bias on standardized benchmarks. Hallucination on factual questions. Those are *real* failure modes and worth measuring. But they are not the failure modes a wrapped-LLM consumer product is most exposed to. The mode that's most exposed is the one where the model confidently generates a plausible-looking plan that has a contraindicated exercise in it because the model wasn't paying attention to a constraint the user mentioned once.
+
+That's not a "the lab's safety training failed" problem. That's a "the lab's safety training is for a different distribution than the production distribution" problem. The model is doing what it was trained to do. It's producing useful, fluent, expert-sounding output. The mismatch between that and "ship to a real human with a real meniscus" is not a model failure. It's an architectural failure of how the model is deployed.
+
+## What this means for your buying decision
+
+I want to be operationally specific. If you're picking an LLM for a clinical or wellness AI product in 2026, the cross-vendor data suggests three things:
+
+1. **Don't pay flagship prices for safety.** Flagship pricing buys you fluency, reasoning, instruction-following, longer context. It does not buy you fewer contraindicated prescriptions on its own. If the safety story is what you're paying for, you're overpaying.
+
+2. **Pick a tier on cost, capability, or latency — and put the safety mechanism elsewhere.** Within a tier, vendor choice matters less than you'd expect. Pick the tier whose unit economics work for your product, then add the governance layer that does the actual safety work.
+
+3. **The cheap tier with governance beats the expensive tier without.** Haiku + WPL across 180 trials: zero safety violations. Opus alone across 30 trials: 114 violations. The cost ratio between those two configurations is roughly 27 to 1, in the cheap tier's favor. There is no reading of the data where picking Opus without a contract is preferable to picking Haiku with one, unless you specifically need Opus's other capabilities for unrelated reasons.
+
+## What this doesn't mean
+
+I don't want this to be heard as "Anthropic is bad" or "OpenAI is bad" or "the labs are reckless." None of that is the takeaway.
+
+The takeaway is: **the labs are optimizing for one set of objectives; product teams are deploying for a different set; and the gap between those two sets of objectives is exactly the place a governance layer has to live.** The labs aren't going to close this gap, because the gap is downstream of what a lab is structurally capable of doing. They can't know your client's contraindications. They can't apply your blacklist. They can't enforce per-client rules on every regeneration. Those are product-team responsibilities.
+
+The data also doesn't mean flagships should never be used. The reasoning-effort sensitivity result is real: GPT-5 at high reasoning is safer than GPT-5 at minimal, and probably safer than GPT-4.1 at any setting. If your product can afford the reasoning budget and your unit economics tolerate it, the flagship is fine — *with* governance. Without governance, the flagship without reasoning is the worst-of-both-worlds combination.
+
+## The cleaner framing
+
+The clickbait version is "bigger LLMs aren't safer." That's true for the specific operational claim "more raw safety violations on this benchmark." It is not true in any general sense.
+
+The cleaner framing is: **safety is not a property of the model. Safety is a property of the system that includes the model.** The data the cross-vendor sweep produced doesn't tell you which model is safest; it tells you that the question is poorly formed. The model is one input to the safety property, and not the dominant one — at least not for the deployment pattern most consumer AI products actually use.
+
+The next post in this series gets into the schema validator finding — the discovery in v0.6 that even with the contract, the schema validator was rejecting a substantial fraction of compile-valid plans, and what we found when we walked back to the schema to understand why.
+
+Repo: [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). Paper: pending arxiv revision.

@@ -1,0 +1,93 @@
+---
+title: "The Two-Lane Benchmark: How to Actually Measure Whether Your LLM Safety Layer Works"
+publishedAt: "2026-06-04"
+summary: "Most LLM safety benchmarks measure the model. That's the wrong unit. If you're shipping a wrapped LLM in production, the thing you actually need to measure is the wrapper. The two-lane architecture isolates the contribution of structural governance from the contribution of the model itself — same model, same prompt, two pipelines, one scorer."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/two-lane-llm-safety-benchmark/cover.jpg"
+---
+
+When I started measuring the safety of LLM-authored fitness plans, I had a problem nobody in the published benchmark literature had solved.
+
+I didn't want to know "is GPT-5 safe?" I wanted to know "is the *thing I'm shipping* safe?" — and the thing I'm shipping is not GPT-5. It's GPT-5 routed through a compile-time contract, with a parser, a schema validator, and a rule evaluator stacked around it.
+
+Every published benchmark I could find evaluates the bare model. Pass a prompt, score the response. Useful for model choice. Useless for the question I actually had, which is: *how much of my product's safety property is coming from the model, and how much is coming from the contract I wrapped around it?*
+
+I needed a benchmark that could subtract.
+
+## The two-lane idea
+
+Take a scenario. Take a model. Take a prompt. Run it twice.
+
+- **Lane A** — the bare LLM. Generic fitness assistant system prompt, no governance layer, free-form text response, an extractor pulls the prescribed exercises into a list, score that list against a clinical blacklist.
+- **Lane B** — the same model, the same scenario, the same prompt. But the system prompt routes the model into a domain-specific language. The output is parsed, schema-validated, and run through a rule evaluator that strips contraindicated exercises against the per-client context. The served plan — the thing the rule evaluator approved — is scored against the *same* blacklist by the *same* scorer.
+
+> The key property: the scorer walks both outputs identically. If the scorer is biased, it's biased identically across lanes and models. Lane differences are not scorer differences.
+
+This is what subtracts. (Lane A score) − (Lane B score) is the safety contribution of the governance layer, isolated from the safety contribution of the model. Same model in both lanes; the only thing that changed is whether there's a contract around it.
+
+## Why a separate extractor
+
+Lane A's output is free-form prose. It might say "have your client do three sets of ten Bulgarian split squats" in a sentence, or list them in a table, or buried in markdown.
+
+If I let the scorer parse Lane A directly, the scorer becomes scenario-aware: it gets better at finding violations in models that format nicely, worse at finding them in models that format messily. That's not a safety measurement. That's a formatting measurement.
+
+So Lane A gets a *separate fixed extractor LLM call* whose only job is to read the prose and return a JSON list of {exercises, foods, intensities, notes}. The extractor's system prompt is identical across every scenario and every model. It is explicitly told it is *not* a judge — "you do not evaluate safety, you do not flag concerns, you only list." The extractor returns a Zod-validated JSON object.
+
+That separation removes per-output adjudication bias from the scoring stage. If the extractor under-counts violations from verbose models, it under-counts them everywhere. The scorer walking the extracted list cannot rescue what the extractor missed, but it also cannot punish what the extractor included.
+
+## Why the same scorer walks both lanes
+
+This is the part that, when I explain it to people in person, takes the longest to land. So I'll spell it out.
+
+Lane A produces a list of exercise names from prose. Lane B produces a compiled plan tree from a DSL. Those are different data shapes. The scorer doesn't care. It walks both:
+
+- For Lane A: every extracted exercise name is normalized (lowercase, non-alphanumeric stripped, English-plural stemmed with safeguards against false stems on `-ss/-us/-is`) and matched against the blacklist using five rules: direct equality, substring containment (2-token minimum), wildcard `_anything` family match, wildcard `_any` exercise-family match (qualifiers ignored), core-token match.
+- For Lane B: the compiled plan tree is walked, the same normalization runs on every exercise reference, the same five matching rules apply.
+
+Identical scoring on both sides. If Lane A reports 207 violations and Lane B reports 28, that 86% reduction is not the scorer being kinder to one lane. It is the contract stripping contraindicated exercises before they reach the scorer.
+
+The scorer is locked in by 71 unit tests covering plural stemming, qualifier stripping, wildcard semantics, intensity threshold comparison, percent-normalization edge cases, cycle-day arithmetic, and the per-day strip pipeline. The same code object scores both lanes.
+
+## Why same model, same prompt, same temperature
+
+I run both lanes with the same model name, the same temperature (τ = 0 where the API accepts it), the same user prompt verbatim. The system prompts differ — Lane A's is generic, Lane B's includes the DSL syntax description.
+
+This is on purpose. I want the *only* moving variable to be "did the model speak through a free-form text channel or through the WPL compiler?" If I changed the model between lanes, I'd be measuring model differences. If I changed temperature, I'd be measuring determinism differences. If I changed the user prompt, I'd be measuring prompt-engineering differences.
+
+I changed the channel. Nothing else.
+
+There is one disclosed asymmetry I have to flag: Claude Opus 4.7 rejects the `temperature` parameter. The model deprecated it after we'd locked the v0.5 corpus. I had to special-case the Anthropic adapter to omit `temperature` for Opus 4.7+ models. This is in the methodology notes and matters for cross-vendor comparisons, but does not affect the OpenAI lineup or the within-Anthropic comparisons.
+
+## The cost model
+
+Per-call I log input tokens, output tokens, and wall-clock latency. Cost is computed offline from the published price tables at evaluation time. Historic results are repriceable from logged tokens without re-running inference — if a vendor changes their pricing, I update the table and the cost numbers update across the dataset.
+
+This matters for one specific finding: the cost ratio between Lane A and Lane B is not constant across models. GPT-5 incurs a +25% governance overhead, GPT-5-mini +31%, GPT-5-nano *−9%* (Lane B is cheaper than Lane A for the cheapest model), GPT-4.1 +118%.
+
+The +118% on GPT-4.1 looks like a contract penalty until you understand the mechanism: the older non-reasoning model emits substantially longer DSL output to express a multi-week plan. The reasoning models compress more aggressively into the DSL surface, narrowing the cost gap. The contract overhead is not constant; it interacts with the model's verbosity prior.
+
+## What multi-turn drift adds
+
+The single-turn protocol is the easy case. Real coaching conversations span many turns, and constraints stated at turn one are rarely repeated. So I added an 8-turn multi-turn protocol: the first turn carries the contraindication ("client has a torn meniscus"); subsequent turns are follow-ups that *do not restate the contraindication* — "add a nutrition plan," "add cardio twice a week," "push the volume up in weeks 4–8."
+
+The drift detector returns the first turn at which a fresh violation appears, or null. A fresh violation means a contraindicated exercise present at turn N that was *not* present at turn 1. That's not single-turn failure; that's the model losing track of the constraint across the conversation.
+
+Lane A: 25 out of 60 multi-turn conversations show drift (42%). Lane B: 0 out of 60. (More on what that means in the next post — it's the result that, operationally, mattered most to me.)
+
+## What the architecture explicitly does not try to do
+
+This benchmark is not trying to be a model leaderboard for general safety. It is trying to instrument a *deployment pattern* — "wrapped LLM serving structured output to humans" — and quantify the contribution of one specific architectural choice (the compile-time contract) on top of the model's intrinsic safety properties.
+
+It is also not trying to measure the production system Gymbile actually ships. The benchmark deliberately excludes the proprietary completion orchestrator that lifts the served-rate from "91% of compile-valid plans" to production-acceptable numbers by consuming the contract's structured errors and re-prompting. The orchestrator is a delivery-completeness mechanism, not a safety mechanism, and including it would let the benchmark report numbers a third party cannot reproduce. The public layer is what the public eval can prove.
+
+## Why this matters beyond fitness
+
+If you take one architectural idea from this post: **safety measurement should isolate the safety mechanism, not bundle it with model selection.**
+
+Most AI safety claims I see in the wild — "our agent is X% safer than baseline" — bundle three things together: a model choice, a prompt, and whatever wrapper. When the baseline improves (a new model lands) the claim degrades, even if the wrapper is still doing the work. When the wrapper changes, you can't tell whether the new numbers come from the wrapper or from the underlying model improving in parallel.
+
+The two-lane architecture forces you to report the delta. It also lets you make the boring-but-true claim that often goes unsaid: "Our model choice is approximately commodity for safety; our wrapper is the load-bearing component." That's the claim the data actually supports for clinical AI in 2026. Saying it out loud is what changes the buying decision from "pick the smartest model" to "pick the right contract."
+
+The next post in this series goes into the multi-turn drift finding specifically — what it means for any AI product whose users have more than one conversation, and why the contract reduces it to zero where the bare model can't.
+
+Repo and corpus: [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval).

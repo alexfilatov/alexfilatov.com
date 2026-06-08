@@ -1,0 +1,105 @@
+---
+title: "Indentation Is a Tax Small LLMs Can't Pay"
+publishedAt: "2026-06-08"
+summary: "An in-cycle v0.6 experiment that surprised me. Replace the indentation in the WPL-AI DSL with explicit END markers, run a tiny re-indenter on the way to the compiler, measure the delta. On Sonnet — no change, the model was already at the ceiling. On Haiku — compile rate jumped from 7/15 to 14/15. The surface form of your DSL matters more than I thought, and it matters most exactly where you'd want it to."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/llm-indentation-end-markers/cover.jpg"
+---
+
+This started as a side question I almost didn't run.
+
+The v0.6 Anthropic sweep was complete. The cross-vendor results were in. The schema-validator finding was documented. I was writing up the v0.7 future-work section and listed "redesign the activity block" as Arm B in the planned A/B/C/D experiment. Before committing the doc I asked myself a question I hadn't seen anyone ask in the structured-output literature: *what if the issue isn't the schema, it's the indentation?*
+
+WPL-AI is an indented DSL. `PLAN` at column 0, `GOALS` at column 0, `GOAL primary strength:` at column 2, `name "..."` at column 4. Every nested block requires the LLM to count whitespace correctly across however many lines. A 12-week plan with three phases, four weeks per phase, four training days per week, three sections (warmup, main, cooldown), three exercises per section — that's 432 exercise lines whose indentation has to be exactly right for the parser to land them in the correct scope.
+
+Indentation is what programmers call a *positional* constraint: every line's leading whitespace must match its semantic depth. The alternative is *tokenized* — explicit `END <BLOCK>` markers that close each block by name. Python uses positional. Most C-family languages use tokenized. The Python community's design intuition is that positional is easier for humans. I wasn't sure that intuition extended to LLMs.
+
+## The experiment
+
+Take the WPL-AI DSL. Modify the LLM-facing prompt to emit a flat form — no leading whitespace at all — with explicit `END <BLOCK>` closers. Write a small ~150-line re-indenter that walks the openers and closers and reconstructs the canonical indented form the existing compiler accepts. From the compiler's perspective the input is unchanged. From the LLM's perspective, indentation discipline is replaced with closer-matching discipline.
+
+15 scenarios, Lane B, single-turn, two models: Claude Sonnet 4.6 and Claude Haiku 4.5. Compared against the v0.6 Lane B single-turn baseline for the same model. Total cost: under $2.
+
+## What the data says
+
+<Table
+  data={{
+    headers: [
+      { content: "Model", key: "model" },
+      { content: "Indented baseline", key: "indented" },
+      { content: "END-markers", key: "endmarkers" },
+      { content: "Delta", key: "delta" },
+    ],
+    rows: [
+      ["Sonnet 4.6 — compile rate", "15/15", "15/15", "0"],
+      ["Sonnet 4.6 — schema valid", "4/15", "0/15", "−4 (confounded by output length)"],
+      ["Haiku 4.5 — compile rate", "7/15", "14/15", "+7 (the headline)"],
+      ["Haiku 4.5 — schema valid", "5/15", "6/15", "+1"],
+      ["Haiku 4.5 — re-indent recovery", "—", "6 of 8 emit-warning trials recovered", "—"],
+    ],
+  }}
+/>
+
+Two things stand out, and they say different things.
+
+**Sonnet was already at the ceiling.** On the indented baseline, Sonnet single-turn compiled 15/15. There is nothing the surface-form change can fix at that operating point — every plan was already crossing the parser. The 4/15 → 0/15 schema-valid regression is a length confound: the END-markers prompt elicited plans roughly 50% larger than baseline, which surfaces more of the upstream activity-block schema problem (the `oneOf` discriminator + `additionalProperties: false` issue I wrote about in the previous post). It is not evidence that END-markers hurt structurally on Sonnet — there was no compile-failure headroom to recover.
+
+**Haiku had real compile-failure headroom and END-markers recovered most of it.** 7/15 → 14/15 is a +47-point swing on a slice where no schema changed, no prompt instruction changed, no scorer logic changed. Only the surface form of the DSL the LLM emits changed. The schema-valid number moved by one — small, within noise — consistent with the activity-block schema being the rate-limiting factor for *that* gate regardless of surface form.
+
+## Why I think this happens
+
+Indentation discipline is a positional constraint that scales badly with output length. Every line's column has to match its semantic depth, and the model has no syntactic anchor — it has to count, in its head, how many levels deep it is. Over a 432-line plan, the small models lose track of the depth. They emit a `MAIN` block at column 2 when it should be at column 4. The parser lands the inner exercise lines in the wrong scope. The compile fails not because the *exercises* were wrong — they're fine — but because the *whitespace* was wrong.
+
+END markers replace this with a tokenized constraint: each opener must have a matching closer somewhere downstream. Tokens carry their own context — the word `END PHASE` is unambiguous regardless of what column it lives in. Small models appear to handle the tokenized form substantially better than the positional one, which is consistent with the fact that they were trained on far more tokenized syntax (C, JavaScript, JSON, XML) than on Python-style indentation.
+
+The 6-of-8 re-indenter recovery rate on Haiku also tells me something useful: when the model *does* err on closer matching (forgets a closer, mismatches one), the error is *visible* — the re-indenter can detect it and emit a warning. When the model errs on indentation, the error is *silent* — the parser just lands the wrong content in the wrong scope, and you only find out at compile time, far from the cause. Tokenized syntax fails loud. Positional syntax fails quiet.
+
+> Tokenized errors are machine-repairable. Positional errors silently shift block scope. The tax that indentation imposes on small models is not the discipline itself — it's that the failure mode is undebuggable.
+
+## What this changes for v0.7
+
+The v0.6 Future Work section originally had Arm B as a single experiment — "redesign the activity block." After running the END-markers probe I split it into two orthogonal axes:
+
+- **B1: DSL surface form.** END-markers versus indented form, full sweep across the Anthropic and OpenAI lineups, both single- and multi-turn. Tests whether the +47-point Haiku compile gain reproduces and whether the larger models gain anything at multi-turn (where they *do* show compile failures, unlike single-turn where Sonnet was at ceiling).
+- **B2: Activity-block schema.** The original Arm B — drop the `type` discriminator and allow `additionalProperties`. Orthogonal to B1; addresses the schema-validation ceiling that B1 does not move.
+
+These are different gates and the probe data says they should be tested separately. B1 affects whether the plan crosses the parser. B2 affects whether the parsed plan crosses the schema validator. The same change cannot move both.
+
+## What I'd encourage other DSL designers to consider
+
+If you're building a DSL for LLMs to emit — not for humans to write — the standard programmer intuitions about syntax design may steer you wrong.
+
+The intuition that *positional syntax is easier for humans* probably holds for humans. It does not obviously hold for LLMs, especially small ones at long output lengths. The data here is one model family on one task, but the mechanism is plausible enough that I'd want to see it falsified, not assumed away.
+
+Three concrete heuristics I'd lift from this experiment:
+
+1. **Prefer tokenized scope markers over positional ones at any tier where you expect the LLM to emit long output.** Long is the operative word; for short outputs both forms work fine.
+
+2. **Audit your DSL by measuring what makes it fail on your smallest deployable model.** If the small-model failure mode is "the parser landed the exercise in the wrong week," that's an indentation problem. If it's "the exercise name is misspelled," that's a vocabulary problem. Different problems have different fixes.
+
+3. **Tolerant parsing is more valuable for LLM-emitted DSLs than for human-authored ones.** A human author who skips a closer notices and fixes it. An LLM that skips a closer does not, and an LLM that's prompted to retry will produce a *different* skipped closer next time. Build the parser to recover; the re-indenter in this probe recovered 6 of 8 emit-warning trials into compile-valid output. That recovery rate is a meaningful contributor to served-rate, not a footnote.
+
+## The wpl-ai compiler bug I found along the way
+
+While diagnosing why an earlier version of this probe produced suspicious results, I discovered that the wpl-ai compiler silently truncates the rest of the plan when it encounters certain long-form duration strings. "5 minutes" parses, but the parser then quietly drops everything that follows it; "5m" works. This was masking the END-markers experiment for the entire first run — I thought the models were producing 1-week skeletons when they were actually producing 12-week plans that the compiler was truncating to 1 week before I saw them.
+
+That bug is independent of this experiment, predates it, and affects the indented DSL too — it's just easier to spot in the END-markers data because the raw text was visible and the contradiction between "12-week raw text" and "1-week compiled JSON" was undeniable. I'm filing it against wpl-ai separately. The lesson is the boring one: *always read your raw artifacts, not just your summary statistics.* I would have caught this earlier if I'd looked at one of the raw text outputs at the start of the probe instead of only the SUMMARY.json at the end.
+
+## Closing the series
+
+This is the sixth post in the WPL Safety Evals series, and the most recent piece of work — the experiment was run this week and the writeup is going up the same day as the result.
+
+The arc of the series, if you've followed it:
+
+1. **The clickbait headline** — bigger LLMs aren't safer; the data is uncomfortable but the framing is honest.
+2. **The two-lane benchmark** — how to actually measure whether your safety mechanism contributes, isolated from the model.
+3. **Multi-turn drift** — your LLM forgets the constraint, 42% of the time, in conversations that span more than one turn.
+4. **The compile-time safety contract** — what WPL is, why DSL → compile beats JSON-mode-with-schema at long output length.
+5. **Bigger isn't safer, sharpened across vendors** — the flagship pattern reproduces on Anthropic; capability inflates absolute violation count.
+6. **Surface form matters, especially for small models** — this post. Indentation is a tax the small tier can't pay.
+
+If you've read all six, thank you. If you've read one, I hope it was the one that mattered for what you're building.
+
+The benchmark is open at [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). The paper (v1 pinned to corpus v0.5.0, OpenAI lineup) is pending arxiv revision; v2 with the Anthropic data and the v0.6 in-cycle probes is in preparation. The v0.6.0-anthropic tag is the citable snapshot for the cross-vendor numbers in posts 1, 5, and 6.
+
+I'm planning a v0.7 sweep that adds Gemini, expands to short-plan scenarios, runs the B1/B2 split this experiment motivated, and includes per-domain clinician review of the blacklist encodings. If you're a clinician, a fitness AI builder, or someone who wants to argue with the framing in this series — I'd genuinely like to hear from you.

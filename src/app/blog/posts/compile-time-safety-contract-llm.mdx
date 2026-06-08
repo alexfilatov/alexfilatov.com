@@ -1,0 +1,113 @@
+---
+title: "A Compile-Time Safety Contract for LLM-Authored Plans"
+publishedAt: "2026-06-06"
+summary: "Why I picked a domain-specific language with a compile gate over JSON-mode with a schema. We tested the obvious approach — give the LLM the full 37,928-character WPL JSON Schema and ask for raw JSON. Zero out of five plans passed validation. The DSL → compile layer is doing real work, and removing it is not free."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/compile-time-safety-contract-llm/cover.jpg"
+---
+
+When I describe the architecture of how Gymbile's AI authors fitness plans, the most common pushback is the same: "Why not just use JSON mode with a schema? OpenAI and Anthropic both support structured output natively. Why build a whole DSL?"
+
+It's a fair question. Building a DSL is real work. Maintaining one is more real work. The cost-benefit on "use the platform feature" versus "build a custom one" should always start tilted toward the platform feature.
+
+I tilted the other way. The v0.6 in-cycle probes — where we actually ran the "obvious" approach and measured what happens — are why.
+
+## What WPL actually is
+
+WPL (Wellness Plan Language) is a domain-specific language for expressing structured wellness plans across workout, nutrition, recovery, meditation, and hybrid programmes. It is two things stacked:
+
+1. **WPL-AI** — a textual DSL the LLM emits. Looks roughly like indented blocks: `PLAN`, `GOALS`, `PHASES`, `PHASE "..." (4 weeks)`, `WEEK 1`, `DAY Monday training 45m "Lower body"`, `WARMUP`, `MAIN straight_sets`, exercise lines with sets, reps, RPE, and rest.
+2. **The compiler + validator** — Lex, parse, validate against a JSON Schema Draft 2020-12, run a rule evaluator that consumes a per-client `ClientContext` (injuries, equipment, menstrual-cycle anchor, flow days, flare windows, hormonal-contraception status) and applies rules of the form `{condition, actions}`. The action `forbid_exercise` strips matching exercises from the compiled plan tree before serving.
+
+The DSL is not the safety mechanism by itself. The safety mechanism is the *contract*: every served plan has passed lex, parse, schema validation, and rule evaluation. If any of those reject, the public layer returns a structured error list — no partial plan, no "best effort" output.
+
+## The architectural ancestry I'm borrowing from
+
+I didn't invent this pattern. The lineage is well-established in computing:
+
+- **Terraform manifests** are checked before they are applied. The plan phase exists exactly so the apply phase cannot be surprised.
+- **Kubernetes resources** are admitted only after policy evaluation. The admission controllers are a separate, deterministic toolchain.
+- **LLVM IR** is transformed under invariant-preserving passes. The bitcode is structurally legal at every stage; illegal IR fails fast.
+
+What WPL does is take this pattern — domain-specific languages whose interfaces are designed to be *validated rather than interpreted* — and specialize it to wellness plans, with the LLM as the emission surface instead of a human author.
+
+The model is therefore free to emit any text it wants. The safety property emerges not from what the LLM produces, but from what compiles, what validates, and what survives the rule evaluator.
+
+## Why not just JSON mode with the schema in the prompt
+
+Here is where the v0.6 in-cycle probes come in. We ran the obvious alternative — put the WPL JSON Schema directly into the system prompt, ask the LLM to emit raw WPL JSON, validate against the same schema the contract uses. No DSL, no compiler, no translation layer. The "consensus best practice" for structured output.
+
+The schema we put in the system prompt was 37,928 characters. Not abridged. The full thing — every type, every constraint, every `oneOf`, every `additionalProperties: false`.
+
+**Five trials on GPT-5-mini, 12-week plans. Zero out of five passed validation.**
+
+The plans were not skeletons. They were complete 12-week programmes, 3–6 phases, 46–75 activities each. The model understood the task, produced the content, formatted reasonable-looking JSON. The validator rejected every one — with roughly 115 errors per plan. The dominant error category, accounting for ~42% of errors: `additionalProperties: must NOT have`. The model invented fields the schema forbids — `notes`, `tempo`, `cues`, `instructions` — despite the schema being literally in its prompt forbidding them.
+
+The same probe on Claude Sonnet 4.6 at 12 weeks hit the output token cap; at 2 weeks it managed 3/5 schema-valid. The same probe on gpt-5-mini at 2 weeks hit 0/5 (no improvement at shorter length).
+
+The 2x2 attribution matrix is in the [v0.6 results](https://github.com/gymbile/wpl-eval/blob/v0.6/docs/V0_6_RESULTS.md), but the operational takeaway is clean:
+
+> "Just use JSON mode with the schema" is harder than it looks at production scale. At long output lengths, schema-in-prompt is not enough. The compile/translate layer between the LLM and the strict format is doing real work. Removing it is not free.
+
+## Where the complexity comes from
+
+Walking the schema-error breakdown back to the schema itself, four sources dominate:
+
+1. **The `type` discriminator on the activity `oneOf`** (26% of errors). WPL represents an activity as a tagged union — a `type` constant (`resistance`, `cardio`, `mobility`, ...) selects which inner prescription shape is valid. LLMs consistently *flatten* discriminated unions: they write one activity shape that mixes fields from multiple variants. This is well-documented in the structured-output literature; it's not a WPL problem, it's a JSON-Schema-on-LLM problem.
+
+2. **`additionalProperties: false`** (42% of errors). The schema refuses any field it doesn't know about. LLMs invent reasonable-sounding fields a human author would naturally include. Every invented field fails validation even if everything else is correct.
+
+3. **ID uniqueness within week scope + slug pattern** (672 errors). Activity IDs must match `^[a-z0-9][a-z0-9_-]*$` and be unique within a week. LLMs naturally reuse a stable ID for "the same exercise" across days — `back_squat` on Monday and Friday — which is the *opposite* of what the schema requires.
+
+4. **Required fields at depth on the inner prescription** (1,948 errors). `exercise_ref`, `prescription.type`, structured set/rep representations — each is required in specific positions in the tree. LLMs forget required fields at depth, especially in long outputs.
+
+The common thread: WPL's activity block externalises decisions that *could be made at compile time* into decisions that *must be made correctly by the LLM at emission time*. Every externalised decision is a place the LLM can fail.
+
+The DSL changes the failure profile. The LLM emits a textual line; the compiler computes the discriminator, generates the IDs, fills in the structural scaffold, asserts the invariants. The LLM does not have to remember to write `additionalProperties: false`-compatible JSON, because it doesn't write JSON.
+
+## What "fails closed" actually means
+
+The compile function (`compileWplAi`) returns one of two things:
+
+- A `compiled.ok = true` result with a JSON plan tree that has passed every gate, *or*
+- A `compiled.ok = false` result with a structured `errors` array, each entry containing:
+  - The error `kind` and `type` (`PHASE_DURATION_MISMATCH`, `DUPLICATE_ID`, `ACTIVITY_BLOCK_MISMATCH`, `CYCLIC_SUBPLAN`, `UNRESOLVED_REF`, ...)
+  - A human-readable `message`
+  - A precise `location` in the DSL source (line, column)
+  - A `repair_hint` carrying a JSON-pointer target and a copy-pasteable shape
+
+There is no third state. There is no "partial plan." There is no "best effort." The contract guarantees that what reaches the user has cleared every gate, or that the system returns a machine-actionable error list.
+
+This is the operational property the paper makes load-bearing: every failure is a *machine-actionable repair request*. The 11 non-compilers across the 120 Lane B trials in v0.5 are not silent failures. They are structured errors that any downstream orchestrator can consume and re-prompt the LLM with targeted fixes.
+
+## Two things the contract explicitly does not do
+
+I want to be careful about what I'm claiming.
+
+**The contract does not make the LLM smarter.** It does not improve reasoning quality. It does not make plans more biomechanically appropriate beyond what the model would have produced anyway. It strips contraindicated exercises against a known blacklist; it does not invent a better progression than the model proposed.
+
+**The contract does not eliminate clinical judgment.** A real trainer reviewing a real plan for a real client will catch things the rule evaluator cannot — context, tone, athlete history, recent injury patterns. The contract is a safety floor under autonomy, not a replacement for it. The benchmark deliberately tests the *worst case* where there is no trainer in the loop. In production, there is.
+
+## Why the DSL is not the same as the schema
+
+The most common confusion I see is people thinking the DSL and the JSON Schema are alternative descriptions of the same thing. They're not.
+
+The DSL is what the LLM emits. The JSON Schema is what the validator checks. The compiler is what translates between them. The DSL is *deliberately easier to emit*: indented blocks, lowercase keywords, two-dot rep ranges (`3x8..12`), single-token exercise names. The schema is *deliberately strict*: tagged unions, additional-properties-false, slug-pattern IDs.
+
+The translation between them — what the compiler does — is where the work happens. The LLM does not have to know about the schema. It has to know about the DSL. The schema is checked by a separate, deterministic toolchain after the DSL is parsed.
+
+This is the asymmetry that makes the architecture work. You get a strict served format without making the LLM produce a strict emission format. The DSL is the LLM-facing API; the schema is the system-facing API; the compiler is the contract between them.
+
+## What changes for v0.7
+
+The v0.6 in-cycle probes are also why we're seriously considering simplifying the activity block in v0.7. Three concrete moves, in increasing order of irreversibility:
+
+- **Allow `additionalProperties`** on the activity block. Validator ignores unknown fields. The rule engine keeps reading only the fields it knows. We lose the ability to flag invented fields; we keep all safety scoring.
+- **Drop the `type` discriminator.** Replace the `oneOf` with a single `Activity` shape where prescription fields are optional; runtime dispatch examines which fields are present. Discriminator-free schemas are the dominant pattern in LLM-friendly JSON.
+- **Compiler-generated IDs.** LLM emits human-readable names; compiler computes canonical IDs and enforces uniqueness. Loses cross-reference convenience inside the LLM-emitted plan; gains a guaranteed-unique ID space.
+
+Together, these would eliminate the top three error categories — 94% of v0.6 Anthropic Lane B schema errors — without touching the safety contract or the scoring logic. The v0.7 A/B/C/D experiment will measure the effect size before we commit.
+
+The next post in this series goes into the cross-vendor result — what the v0.6 sweep across Anthropic showed that the OpenAI-only paper couldn't — and why "bigger LLMs aren't safer" is the data, not the framing.
+
+Repo: [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). Paper: on its way to arxiv.
