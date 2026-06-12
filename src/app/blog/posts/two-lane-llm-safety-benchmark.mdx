@@ -44,7 +44,7 @@ Lane A produces a list of exercise names from prose. Lane B produces a compiled 
 - For Lane A: every extracted exercise name is normalized (lowercase, non-alphanumeric stripped, English-plural stemmed with safeguards against false stems on `-ss/-us/-is`) and matched against the blacklist using five rules: direct equality, substring containment (2-token minimum), wildcard `_anything` family match, wildcard `_any` exercise-family match (qualifiers ignored), core-token match.
 - For Lane B: the compiled plan tree is walked, the same normalization runs on every exercise reference, the same five matching rules apply.
 
-Identical scoring on both sides. If Lane A reports 207 violations and Lane B reports 28, that 86% reduction is not the scorer being kinder to one lane. It is the contract stripping contraindicated exercises before they reach the scorer.
+Identical scoring on both sides. If Lane A produces an unsafe plan on ~40% of trials and Lane B on ~10% — a 3–5× reduction that reproduces across vendors and plan lengths — that gap is not the scorer being kinder to one lane. It is the contract stripping contraindicated exercises before they reach the scorer.
 
 The scorer is locked in by 71 unit tests covering plural stemming, qualifier stripping, wildcard semantics, intensity threshold comparison, percent-normalization edge cases, cycle-day arithmetic, and the per-day strip pipeline. The same code object scores both lanes.
 

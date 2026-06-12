@@ -14,7 +14,7 @@ In v0.6, I ran it. Here's the data.
 
 ## The cross-vendor leaderboard
 
-Lane A single-turn safety violations, 15 medical fitness scenarios per model, no governance:
+Lane A safety violations, 15 medical fitness scenarios per model across all 30 trials (single-turn + multi-turn), no governance:
 
 <Table
   data={{
@@ -25,13 +25,13 @@ Lane A single-turn safety violations, 15 medical fitness scenarios per model, no
       { content: "Rank", key: "rank" },
     ],
     rows: [
-      ["GPT-4.1", "OpenAI", "28", "1 (safest)"],
-      ["Claude Haiku 4.5", "Anthropic", "28", "1 (safest)"],
-      ["GPT-5-nano", "OpenAI", "29", "3"],
-      ["Claude Sonnet 4.6", "Anthropic", "56", "4"],
-      ["GPT-5-mini", "OpenAI", "59", "5"],
-      ["GPT-5", "OpenAI", "91", "6"],
-      ["Claude Opus 4.7", "Anthropic", "114", "7 (least safe)"],
+      ["Claude Haiku 4.5", "Anthropic", "27", "1 (safest)"],
+      ["GPT-4.1", "OpenAI", "29", "2"],
+      ["GPT-5-nano", "OpenAI", "31", "3"],
+      ["GPT-5-mini", "OpenAI", "53", "4"],
+      ["Claude Sonnet 4.6", "Anthropic", "67", "5"],
+      ["GPT-5", "OpenAI", "89", "6"],
+      ["Claude Opus 4.7", "Anthropic", "129", "7 (least safe)"],
     ],
   }}
 />
@@ -40,7 +40,7 @@ Two things to read off this table that the OpenAI-only data couldn't have told y
 
 1. **The flagship pattern reproduces across vendors.** Anthropic's flagship (Opus 4.7) is the least-safe model in the lineup. OpenAI's flagship (GPT-5) is the second-least-safe. The two cheapest models (Haiku, GPT-4.1) are tied for safest. This is not a vendor problem. It's a tier problem.
 
-2. **Cross-vendor at-tier is approximately commodity for safety.** Haiku ≈ GPT-4.1 ≈ GPT-5-nano. Sonnet ≈ GPT-5-mini. The within-tier vendor gaps are smaller than the across-tier gaps in the same vendor. If you pick a tier, you can largely pick a vendor on other criteria.
+2. **Cross-vendor at-tier is approximately commodity for safety.** The cheap tier clusters tightly (Haiku ≈ GPT-4.1 ≈ GPT-5-nano, all in the high-20s to low-30s); the mid and flagship tiers spread wider but the ordering is by tier, not by vendor. The within-tier vendor gaps are smaller than the across-tier gaps in the same vendor. If you pick a tier, you can largely pick a vendor on other criteria.
 
 ## The mechanism, sharpened
 
@@ -74,7 +74,7 @@ I want to be operationally specific. If you're picking an LLM for a clinical or 
 
 2. **Pick a tier on cost, capability, or latency — and put the safety mechanism elsewhere.** Within a tier, vendor choice matters less than you'd expect. Pick the tier whose unit economics work for your product, then add the governance layer that does the actual safety work.
 
-3. **The cheap tier with governance beats the expensive tier without.** Haiku + WPL across 180 trials: zero safety violations. Opus alone across 30 trials: 114 violations. The cost ratio between those two configurations is roughly 27 to 1, in the cheap tier's favor. There is no reading of the data where picking Opus without a contract is preferable to picking Haiku with one, unless you specifically need Opus's other capabilities for unrelated reasons.
+3. **The cheap tier with governance beats the expensive tier without.** Haiku + WPL: a 3–5× reduction in unsafe plans on top of the lowest raw-violation count in the lineup. Opus alone: 129 raw violations across 30 trials, the worst in the lineup. The cost ratio between those two configurations is roughly 25 to 1, in the cheap tier's favor. There is no reading of the data where picking Opus without a contract is preferable to picking Haiku with one, unless you specifically need Opus's other capabilities for unrelated reasons.
 
 ## What this doesn't mean
 

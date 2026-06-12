@@ -23,11 +23,11 @@ Each scenario runs through two pipelines using *the same model and the same prom
 - **Lane A** — raw LLM. Generic fitness AI system prompt, free-form text out, an extractor pulls the prescribed exercises into a list, a deterministic scorer counts how many are on the blacklist.
 - **Lane B** — the same model, the same scenario, the same scorer, but routed through a compile-time safety contract: a domain-specific language with a published JSON Schema, per-client rule evaluation that strips contraindicated exercises before serving.
 
-Everything single-turn *and* 8-turn multi-turn, both phases scored identically. 420 trials. $108.70 in inference cost. Every prompt, every model response, every score committed as JSON in [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval).
+Everything single-turn *and* 8-turn multi-turn, both phases scored identically. 420 trials. ~$146 in inference cost. Every prompt, every model response, every score committed as JSON in [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval).
 
 ## The number that made me stop and recount
 
-Total raw safety violations per model (Lane A, no governance):
+Total raw safety violations per model (Lane A, no governance, across all 30 long-plan trials each):
 
 <Table
   data={{
@@ -36,18 +36,18 @@ Total raw safety violations per model (Lane A, no governance):
       { content: "Violations", key: "violations" },
     ],
     rows: [
-      ["GPT-4.1", "28"],
-      ["Claude Haiku 4.5", "28"],
-      ["GPT-5-nano", "29"],
-      ["Claude Sonnet 4.6", "56"],
-      ["GPT-5-mini", "59"],
-      ["GPT-5", "91"],
-      ["Claude Opus 4.7 ← worst", "114"],
+      ["Claude Haiku 4.5", "27"],
+      ["GPT-4.1", "29"],
+      ["GPT-5-nano", "31"],
+      ["GPT-5-mini", "53"],
+      ["Claude Sonnet 4.6", "67"],
+      ["GPT-5", "89"],
+      ["Claude Opus 4.7 ← worst", "129"],
     ],
   }}
 />
 
-The flagship in each vendor's lineup came in last on raw safety. The most expensive model in my entire benchmark — Anthropic's Opus 4.7, $5/$25 per million input/output tokens, the model their marketing positions as their most capable reasoning system — wrote the most contraindicated prescriptions.
+The flagship in each vendor's lineup came in worst on raw safety. The most expensive model in my entire benchmark — Anthropic's Opus 4.7, $5/$25 per million input/output tokens, the model their marketing positions as their most capable reasoning system — wrote the most contraindicated prescriptions, nearly 5× as many as the cheapest model in the lineup.
 
 That ranking is not what I expected when I started this benchmark. I expected the line to slope the other way. "More capable models are safer" is a load-bearing assumption in how AI products are sold and how AI policy is written. The data doesn't back it.
 
@@ -65,31 +65,33 @@ If you're shipping a fitness AI today and your default model is "the biggest one
 
 Same models. Same scenarios. Same prompts. Same scorer. Routed through the compile-time governance layer (Lane B):
 
-**Every Anthropic model: 0 safety violations across 180 trials.** Including Opus.
+**The contract cuts the unsafe-plan rate by 3–5× on every model and corpus.** Raw, the models produce an unsafe plan on 32–51% of trials. Routed through the contract, that drops to 8–17%. Same model, same prompt — the only difference is whether the output passes through the contract before it ships.
 
 The contract doesn't change the LLM. It changes what the LLM is allowed to ship. The DSL forces the plan into a shape the compiler can introspect. The compiler refuses anything that doesn't fit a published JSON schema. The rule evaluator strips contraindicated exercises against the per-client context on *every* regeneration — not just the first turn. If the plan can't pass, the plan doesn't ship.
+
+(An honest footnote, because it matters: an earlier version of this benchmark reported "zero violations" through the contract. That number was a measurement bug — a plan-walker reading the wrong path in the compiled output, so the scorer saw an empty plan and flagged nothing. I found it, fixed it, re-scored everything from the stored model output, and the corrected number is the 3–5× reduction above. The contract works; it is not a perfect filter, and the residual gap — mostly intensity caps the rule engine doesn't yet enforce — is documented in the repo. I'd rather show you the corrected number than the flattering one.)
 
 That's the actual operating-system-level lesson: **the LLM is not the thing you optimize for safety. The contract around the LLM is.**
 
 > Picking a "safer model" is the wrong frame. Picking a *contract* is the right one.
 
-The same Opus 4.7 that wrote 114 contraindicated prescriptions raw, wrote zero contraindicated prescriptions through the contract.
+The same Opus 4.7 that wrote 129 contraindicated prescriptions raw, had the overwhelming majority of them stripped before serving once it spoke through the contract.
 
 ## So which LLM should you actually use?
 
 If you're building clinical or wellness AI in 2026, here's what the 420 trials say:
 
-**For structural reliability** — GPT-5 compiled 100% of plans and got 73% past the full schema validator. Highest schema-valid rate in the lineup. If your downstream system requires strict JSON, this is the one.
+**For structural reliability** — GPT-5. It compiled every plan and got ~93% past the full schema validator (single-turn). Highest schema-valid rate in the lineup. If your downstream system requires strict JSON, this is the one.
 
-**For cheap + governed** — Claude Haiku 4.5 at $0.18 per delivered plan, the contract still holds at zero safety violations. The performance gap between Haiku-with-governance and Opus-with-governance is measurable but small; the cost gap is 27x. For most production deployments this is the obvious pick.
+**For cheap + governed** — Claude Haiku 4.5 at $0.18 per delivered plan, the lowest raw-violation count *and* the contract on top. The performance gap between Haiku-with-governance and Opus-with-governance is measurable but small; the cost gap is roughly 25×. For most production deployments this is the obvious pick.
 
-**To avoid raw** — Opus 4.7. The intuition that "smarter equals safer" doesn't hold here. Without governance, it's the worst safety performer in the lineup. *With* governance, it's fine — but you're paying $25/M output tokens for "fine" when Haiku gets you to the same place.
+**To avoid raw** — Opus 4.7. The intuition that "smarter equals safer" doesn't hold here. Without governance, it's the worst safety performer in the lineup. *With* governance, it's fine — but you're paying $25/M output tokens for "fine" when Haiku gets you most of the way there.
 
-**To avoid entirely for structured output** — GPT-5-nano. 0 out of 30 plans passed schema validation. Every single attempt was structurally broken. The pricing makes it tempting; the served-rate makes it unusable.
+**To avoid for structured output** — GPT-5-nano. It compiled most plans but only ~13% passed schema validation; the rest were structurally broken. The pricing makes it tempting; the served-rate makes it a poor fit for a strict-format pipeline.
 
 ## Why I'm telling you this in narrative form
 
-The full results live in a paper, currently pending arxiv revision, and the v0.6 numbers are published in [`docs/V0_6_RESULTS.md`](https://github.com/gymbile/wpl-eval/blob/v0.6/docs/V0_6_RESULTS.md) for the repository at tag `v0.6.0-anthropic`. If you want the tables, the methodology disclosures, and the four-arm prompt ablation, that's where they are.
+The full results live in a paper, currently pending arxiv revision, and the corrected v0.6 numbers are published in [`docs/V0_6_RESULTS.md`](https://github.com/gymbile/wpl-eval/blob/v0.6/docs/V0_6_RESULTS.md) on the `v0.6` branch. If you want the tables, the methodology disclosures (including the walker-bug correction notice), and the four-arm prompt ablation, that's where they are.
 
 But the lesson I want you to leave with — if you're building, evaluating, or buying an AI product that talks to humans about their bodies — is operational, not academic:
 
@@ -97,9 +99,9 @@ But the lesson I want you to leave with — if you're building, evaluating, or b
 
 2. **"Most capable" is not "safest" by default.** Verbosity inflates absolute violation count. Without a contract, more capable models surface this pattern *first*, not last.
 
-3. **You can audit this for $111.** Every prompt, every response, every score is reproducible from a fresh checkout. The benchmark is open. If you don't trust my numbers, run them yourself; the runner is idempotent.
+3. **You can audit this for the cost of a dinner.** The full dataset — now 560 trials including a short-plan corpus — reproduces for under $170 of API spend. Every prompt, every response, every score is reproducible from a fresh checkout. The benchmark is open. If you don't trust my numbers, run them yourself; the runner is idempotent.
 
-This is the first post in a series. The next ones go into the architecture (how the two-lane benchmark actually works), the multi-turn drift finding (your LLM forgets the contraindication you told it about — 42% of the time), why the schema validator turned out to be the real ceiling, and the surprising result from the END-markers DSL experiment.
+This is the first post in a series. The next ones go into the architecture (how the two-lane benchmark actually works), the multi-turn drift finding (your LLM forgets the contraindication you told it about — roughly 40% of the time on raw output), why the schema validator turned out to be the real ceiling, and the surprising result from the END-markers DSL experiment.
 
 I'd rather have shipped a fitness AI without finding any of this. The data was what it was, and I'd rather build on top of it honestly than ship on top of it quietly.
 
