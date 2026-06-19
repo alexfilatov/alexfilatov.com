@@ -72,7 +72,9 @@ The single-turn protocol is the easy case. Real coaching conversations span many
 
 The drift detector returns the first turn at which a fresh violation appears, or null. A fresh violation means a contraindicated exercise present at turn N that was *not* present at turn 1. That's not single-turn failure; that's the model losing track of the constraint across the conversation.
 
-Lane A: 25 out of 60 multi-turn conversations show drift (42%). Lane B: 0 out of 60. (More on what that means in the next post — it's the result that, operationally, mattered most to me.)
+Across 105 multi-turn conversations on the raw lane, 44 drift — 42%. Routed through the contract, blacklist drift drops to 6%, and to literally zero on the Anthropic corpus (0 of 45). (An earlier version of this post reported a clean "0 of 60" on Lane B; that zero was a plan-walker measurement bug — the scorer read the wrong path in the compiled output and saw an empty plan — found, fixed, and re-scored to the corrected 6% above. More on what that means in the next post — it's the result that, operationally, mattered most to me.)
+
+A further v0.7 caveat on the Lane B side specifically: a later audit found the "rules a trainer would configure" had been partly derived from the same grading blacklist, so the Lane B figures are expected to come down on a de-circularized re-run that's still pending — the two-lane *method* (subtract the wrapper's contribution with one scorer across both lanes) is unaffected, but the magnitude of the Lane B delta is under honest review. I wrote up the audit in [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals).
 
 ## What the architecture explicitly does not try to do
 
@@ -91,3 +93,7 @@ The two-lane architecture forces you to report the delta. It also lets you make 
 The next post in this series goes into the multi-turn drift finding specifically — what it means for any AI product whose users have more than one conversation, and why the contract reduces it to zero where the bare model can't.
 
 Repo and corpus: [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval).
+
+---
+
+*The series continues →* [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals) (how I de-circularized my own evals) and [My Safety Layer Had a Blind Spot in Production](/blog/wpl-production-safety-blind-spot) (the catalog drift that hid rehab clients from the safety layer).
