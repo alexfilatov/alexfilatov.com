@@ -3,7 +3,6 @@ title: "My Safety Layer Had a Blind Spot in Production"
 publishedAt: "2026-06-25"
 summary: "A whole class of clients — people coming back from injury — had rehab exercises the live safety layer treated as 'unknown'. Not because the rules were wrong, but because the exercise catalog had quietly drifted across the codebase. A safety layer can only govern a vocabulary it shares. Here's the drift, why it's a safety bug and not a code smell, and the single-source-of-truth fix that shipped."
 tag: "WPL Safety Evals"
-image: "/images/blog/wpl-evals/wpl-production-safety-blind-spot/cover.jpg"
 ---
 
 The previous post in this series was about making my benchmark more honest. This one is about something I found in the live system while I was at it — and it's the kind of bug that doesn't show up in any benchmark, because the benchmark and production were reading from two different copies of the same file.

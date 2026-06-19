@@ -3,7 +3,6 @@ title: "I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse"
 publishedAt: "2026-06-23"
 summary: "A safety benchmark you can't trust is worse than no benchmark. So I audited mine instead of marketing it — and found three ways it was flattering me: rules derived from the grading key, models grading themselves, and a matcher that quietly failed open. Here's what I fixed, and why the honest version is more modest."
 tag: "WPL Safety Evals"
-image: "/images/blog/wpl-evals/wpl-auditing-your-own-safety-evals/cover.jpg"
 ---
 
 I launched WPL — the Wellness Plan Language — as a safety and governance layer for AI-generated fitness plans. The pitch was simple: a wellness plan is not a chatbot reply, and if it's wrong the client gets hurt, so it should be checked before a human ever sees it. I shipped a schema, a validator, a rule engine, and a benchmark that measures how often AI-built plans include exercises contraindicated for a client's injury or condition. The numbers looked good.
