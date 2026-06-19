@@ -1,0 +1,62 @@
+---
+title: "My Safety Layer Had a Blind Spot in Production"
+publishedAt: "2026-06-25"
+summary: "A whole class of clients — people coming back from injury — had rehab exercises the live safety layer treated as 'unknown'. Not because the rules were wrong, but because the exercise catalog had quietly drifted across the codebase. A safety layer can only govern a vocabulary it shares. Here's the drift, why it's a safety bug and not a code smell, and the single-source-of-truth fix that shipped."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/wpl-production-safety-blind-spot/cover.jpg"
+---
+
+The previous post in this series was about making my benchmark more honest. This one is about something I found in the live system while I was at it — and it's the kind of bug that doesn't show up in any benchmark, because the benchmark and production were reading from two different copies of the same file.
+
+A whole class of clients — people coming back from injury — had rehab exercises that the production safety layer treated as *unknown*. Not blocked, not flagged. Unknown. The compiler didn't recognize the exercise existed, so it had nothing to reason about. The rules were correct. The vocabulary was wrong.
+
+## The symptom
+
+Post-injury rehab plans use a specific vocabulary: `scapular_retraction`, `external_rotation`, `pelvic_tilt`, `diaphragmatic_breathing`, and the rest of the slow, careful movements you prescribe to someone rebuilding from a shoulder impingement or a lumbar episode. When one of those exercises came through the production compiler, it resolved to "unknown."
+
+An unknown exercise is not a stripped exercise. It's worse. The safety layer's whole job is to look at every exercise in a plan, decide whether it's contraindicated for this client, and remove it if it is. To do that, it has to *know what the exercise is*. An exercise it doesn't recognize is an exercise it can't evaluate — it can't strip it, can't reason about it, can't even tell you it skipped it. It slides past governance entirely.
+
+So the most vulnerable clients in the system — the ones coming back from injury, the ones for whom an inappropriate movement is most likely to re-injure — were exactly the clients whose plans the safety layer understood least.
+
+## The root cause: drift
+
+The exercise catalog — the canonical list of every exercise the system knows by name — had been copied into roughly seven repositories with no mechanism to keep them in sync. Each consumer had its own copy. Over time, the copies drifted.
+
+Gymbile's in-house production fork was the worst of them: it was missing ten names, including the **entire `rehab_mobility` category** (plus `inverted_row` and `hangboard`). The benchmark's copy had them. The spec's copy had them. Production's copy didn't. So the eval happily measured a vocabulary that the live system didn't actually have — which is exactly why no test caught it. The tests and the production code were reading different catalogs.
+
+This is the failure mode of duplicated source-of-truth: not that any single copy is wrong on the day you write it, but that copies drift, silently, and the drift surfaces in production on the inputs you tested least.
+
+## Why this is a safety bug, not a code smell
+
+It would be easy to file "the catalog is duplicated across seven repos" as tech debt — a code smell, a cleanup task, something to get to eventually. It isn't. It's a safety bug, and the reason is structural.
+
+A governance layer can only act on a vocabulary it shares. The rule engine reasons over exercise names: "if this client has a torn meniscus, forbid this family of movements." That reasoning is only as complete as the catalog the engine can see. An exercise outside the catalog is outside governance by construction — there is no rule that can fire on a name the system doesn't recognize, because the name never resolves to anything a rule can match.
+
+So a drifted catalog isn't a cosmetic inconsistency. It's a hole in the safety boundary, shaped exactly like whatever the production copy happens to be missing. In this case the hole was rehab-shaped, which is the worst possible shape for it to be.
+
+## The fix: one source of truth
+
+The fix is the boring, correct one: a single canonical catalog — 152 names — living in the `wpl` spec repo as the single source of truth. Every consumer now vendors a copy of that canonical catalog and generates its native module from it via deterministic codegen, rather than hand-maintaining its own list.
+
+The discipline that makes it stick is in CI. Two drift-checks guard every consumer:
+
+1. **Vendored-JSON-matches-the-pinned-release** — the copy a consumer carries must be byte-identical to the canonical release it pins. If someone edits a local copy, CI fails.
+2. **Re-run-codegen-produces-no-diff** — regenerating the native module from the vendored catalog must produce no change. If the generated code has drifted from its source, CI fails.
+
+Together those mean a consumer cannot quietly fall out of sync again without a red build.
+
+The backend regained the ten missing names. I added a regression test that asserts those exact ten names are now known to the compiler, and an end-to-end test that a plan containing a rehab exercise compiles all the way through. Then I shipped it to production. The rehab clients' plans now resolve to known exercises that the safety layer can actually govern.
+
+## The honest coda
+
+Drift is a safety risk. Not a hypothetical one — it had a live blast radius, aimed at the clients least able to absorb it. This particular class of gap is now closed: the rehab vocabulary is back, the tests pin it, and production reasons over it.
+
+But the thing I actually fixed isn't the ten names. It's the discipline. The single source of truth plus the drift-checks are what stop the *next* missing category from reaching production silently. A regression test catches the bug you already found; a drift-check catches the bug you haven't found yet.
+
+What I'm not claiming: the catalog is not clinician-validated. It's the complete, consistent vocabulary the system shares — which is a prerequisite for governance, not a guarantee of clinical correctness. An alias table and a single source of truth for the contraindication data itself are future phases. This post is about one specific, structural lesson: a safety layer can only govern a vocabulary it shares, and keeping that vocabulary singular is a safety property, not a nicety.
+
+---
+
+This is part of the WPL Safety Evals series. The previous post is the companion to this one: [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals).
+
+The benchmark is open at [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). [Gymbile](https://www.gymbile.com) runs the contract in production.
