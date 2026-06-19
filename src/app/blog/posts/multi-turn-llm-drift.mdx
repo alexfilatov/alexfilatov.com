@@ -48,6 +48,8 @@ The contraindication is no longer something the model has to remember. It's some
 
 **An honest correction, because this number used to be wrong.** An earlier version of this benchmark reported "0/60 drift" — a clean zero. That was a measurement bug: a plan-walker reading the wrong path in the compiled output, so the safety scorer saw an empty plan and never registered a drift. I found it, fixed it, re-scored everything, and the corrected number is the 6% above (with the Anthropic half genuinely at zero). The contract crushes blacklist drift. It does not annihilate it — the residual is mostly intensity-cap drift (an RPE that creeps above a flow-day threshold mid-conversation), which the current rule engine doesn't yet strip. I'd rather tell you the real number than the flattering one, especially in a post about not fooling yourself with single-shot evals.
 
+**A v0.7 update.** A later audit found the Lane B "rules a trainer would configure" had been partly derived from the same grading blacklist — the filter had partly seen the answer key — so the Lane B drift figures are expected to come down on a de-circularized re-run that's still pending. The direction of the result (per-regeneration enforcement collapses blacklist drift) holds; the precise magnitude is now under honest review. Full writeup: [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals).
+
 ## Why this scales the safety property correctly
 
 The single-turn safety story is "the model usually does fine, but not always." That's a probability statement, and probabilities compose badly across turns. If a model has a 5% chance of writing one contraindicated exercise per turn, the chance it writes at least one across 8 turns is 1 − (0.95)^8 = 34%. That's roughly where I'd expect the drift number to land for an OK model, and it's close to the empirical 42%.
@@ -93,3 +95,7 @@ The follow-up prompts are also scripted, not adaptive. A real trainer would noti
 This is the third in a series on the WPL safety eval. The next one goes into the contract itself — what the DSL is, why I picked compile-time validation over JSON-mode-with-schema, and what the direct-JSON probe (where we tried the "obvious" approach of giving the LLM the full JSON Schema and asking for raw JSON) found about *that* approach's failure mode.
 
 Full results are at [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). The paper is on its way to arxiv.
+
+---
+
+*The series continues →* [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals) (how I de-circularized my own evals) and [My Safety Layer Had a Blind Spot in Production](/blog/wpl-production-safety-blind-spot) (the catalog drift that hid rehab clients from the safety layer).

@@ -71,6 +71,8 @@ The contract doesn't change the LLM. It changes what the LLM is allowed to ship.
 
 (An honest footnote, because it matters: an earlier version of this benchmark reported "zero violations" through the contract. That number was a measurement bug — a plan-walker reading the wrong path in the compiled output, so the scorer saw an empty plan and flagged nothing. I found it, fixed it, re-scored everything from the stored model output, and the corrected number is the 3–5× reduction above. The contract works; it is not a perfect filter, and the residual gap — mostly intensity caps the rule engine doesn't yet enforce — is documented in the repo. I'd rather show you the corrected number than the flattering one.)
 
+(A v0.7 update, in the same spirit: a later audit found the Lane B "rules a trainer would configure" had been partly derived from the same grading blacklist — the filter had partly seen the answer key. The rules have since been de-circularized, and the Lane B figures are expected to come down on a de-circularized re-run that's still pending. The 3–5× direction holds; the exact magnitude of the contract's contribution is now under honest review. I wrote up the full audit in [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals).)
+
 That's the actual operating-system-level lesson: **the LLM is not the thing you optimize for safety. The contract around the LLM is.**
 
 > Picking a "safer model" is the wrong frame. Picking a *contract* is the right one.
@@ -108,3 +110,7 @@ I'd rather have shipped a fitness AI without finding any of this. The data was w
 [Gymbile](https://www.gymbile.com) runs the contract in production. The benchmark is open at [github.com/gymbile/wpl-eval](https://github.com/gymbile/wpl-eval). The paper is on its way to arxiv.
 
 If you're shipping clinical AI and want to talk about what the contract layer looks like in your domain, you know where to find me.
+
+---
+
+*The series continues →* [I Audited My Own AI-Safety Benchmark and Made the Numbers Look Worse](/blog/wpl-auditing-your-own-safety-evals) (how I de-circularized my own evals) and [My Safety Layer Had a Blind Spot in Production](/blog/wpl-production-safety-blind-spot) (the catalog drift that hid rehab clients from the safety layer).
