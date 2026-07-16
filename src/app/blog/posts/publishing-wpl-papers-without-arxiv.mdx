@@ -1,0 +1,52 @@
+---
+title: "Two Papers, No arXiv: Publishing the WPL Safety Evals Anyway"
+publishedAt: "2026-07-16"
+summary: "I wrote two research papers about the WPL safety benchmark — arXiv-ready LaTeX, versioned preprints pinned to tagged corpus releases. Then I hit the one gate money can't buy: arXiv endorsement. So the papers now live at wpl.dev/papers, full lineage included — even the superseded first draft with its mistakes documented. Here's why publishing the progression matters more than publishing the polish."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/publishing-wpl-papers-without-arxiv/cover.jpg"
+---
+
+This series has been building toward something: [the two-lane benchmark](/blog/two-lane-llm-safety-benchmark), [the compile gate](/blog/compile-time-safety-contract-llm), [the flagship-safety inversion](/blog/bigger-llms-arent-safer), [the audit that made my own numbers worse](/blog/wpl-auditing-your-own-safety-evals). That something is now written up properly: two research papers, arXiv-ready LaTeX, figures, ablations, threats-to-validity, the whole apparatus.
+
+They're not on arXiv. They're at [wpl.dev/papers](https://wpl.dev/papers). Here's why, and why I decided that's not a compromise — it's actually a better format for what this work is.
+
+## The gate money can't buy
+
+arXiv has an endorsement system: before your first submission to a category, someone who has already published there has to vouch that your work belongs. It's a spam filter, and a reasonable one — arXiv would drown without it. But it means an independent researcher without an institutional affiliation or a co-author network hits a wall that has nothing to do with the quality of the work.
+
+I've requested endorsement. While that request sits in inboxes, I had two finished papers and a choice: let them wait invisibly, or publish them myself. I built a papers section on wpl.dev in an afternoon. The papers are there now, PDFs and all.
+
+## What the papers actually claim
+
+The current paper is pinned to corpus `v0.6.0`: seven models across two vendors — `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, Claude Opus 4.7, Sonnet 4.6, Haiku 4.5 — across twenty scenarios, 560 trials, $169.99 of inference. Same model, same prompt, two pipelines: raw LLM output versus the same model routed through WPL's compile-time contract.
+
+Four results, compressed:
+
+1. **Governance cuts the unsafe-trial rate 3–5× on every corpus** — Lane A runs 32–51% unsafe, Lane B 8–17% — and eliminates the medical-contraindication class entirely: 46/84 unsafe trials raw, 0/84 governed, across both vendors.
+2. **Raw-LLM safety degrades as capability grows.** The two flagships were the two worst raw-safety performers. If you read [the flagship post](/blog/bigger-llms-arent-safer), the paper is where that claim gets its full statistical treatment.
+3. **The schema validator, not the compile gate, is the served-rate ceiling** — and direct-JSON probes show the DSL→compile path does conformance work that raw LLM emission can't substitute for, even with the full schema in the prompt.
+4. **Multi-turn drift drops from 42% to 6% of conversations under governance.**
+
+And one disclosure I'm prouder of than any headline number: the paper documents, in full, a measurement artifact in a pre-publication snapshot — an extraction defect that reported "0 violations" where the corrected figure is 5–6 unsafe trials per sub-corpus — plus the three further methodology bugs found while fixing it. The corrected re-score cost zero additional inference, because every raw model output is committed to the repo. That's [the audit post](/blog/wpl-auditing-your-own-safety-evals) grown up into a formal section.
+
+## Versioned preprints, pinned to versioned data
+
+The part I want to defend as a format, not a workaround: **each paper version is pinned to a tagged release of the eval corpus.** The headline numbers, model lineup, and scenario count in a paper reflect exactly one corpus tag. Every quantitative claim is offline-reproducible from the committed raw outputs — no API spend required to check my math.
+
+And the lineage is public. The first draft — pinned to corpus `v0.5.0`, OpenAI-only, 240 trials — was superseded before submission when the corrected cross-vendor numbers landed. The conventional move is to quietly delete it. I published it instead, clearly labeled as a superseded draft, sitting on the same page as its replacement.
+
+Why? Because the progression *is* the finding. The v0.5.0 draft claimed multi-turn drift went to **zero** under governance. The v0.6.0 paper says 6%. The difference isn't that the system got worse — it's that the measurement got honest: more scenarios, a second vendor, a fixed scorer. A research program that only ever shows you its latest, cleanest number is asking you to trust its process blind. Showing the previous number, and exactly what changed it, is the closest a solo researcher gets to peer review.
+
+## An honesty note on categories
+
+When I first drafted the "please endorse me" ask, I wrote "it's a legitimate ML paper." Then I caught myself, because that's slightly too generous in a way this series exists to avoid.
+
+These are ML *evaluation* papers, not ML *methods* papers. There's no new learning algorithm, no training, no architecture. The models are the subject of study; the contributions are a benchmark, a measurement methodology, and a systems result about a DSL with a compile gate. That's a real genre — LLM eval papers are a large fraction of what gets posted in `cs.AI` and `cs.CL` — but if you're a potential endorser deciding whether this belongs in your category, you deserve the precise description, not the flattering one.
+
+## Where this goes
+
+The v0.7.0 corpus is already planned: Google Gemini joins the lineup, the rule evaluator starts *enforcing* the intensity caps this paper only measures, clinicians from three specialties review the blacklist encodings, and a schema-fail attribution experiment digs into result 3. When it lands, it becomes paper v2 — same page, same lineage, one more row in the version table.
+
+If the endorsement comes through, the papers go to arXiv and wpl.dev/papers becomes a mirror. If it doesn't, wpl.dev/papers stays the canonical home, and honestly, the versioned-preprint-pinned-to-versioned-data format works better there than in a PDF graveyard anyway.
+
+If you've published on arXiv in an ML-adjacent category and you're willing to read 32 pages before deciding whether to vouch for them — [the papers are here](https://wpl.dev/papers). That's all an endorsement is supposed to mean, and it's all I'm asking for.
