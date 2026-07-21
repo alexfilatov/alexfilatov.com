@@ -1,0 +1,58 @@
+---
+title: "Your AI Trainer Can't Take Back What It Already Prescribed"
+publishedAt: "2026-07-22"
+summary: "I tested 10 LLMs from OpenAI, Anthropic, and Google on clients who change mid-programme — injuries, clearances, travel, cardiac regression. 9 out of 10 raw models kept prescribing the forbidden exercise after being told about the injury. Routed through a governance layer, all 10 passed. Here are the numbers."
+tag: "WPL Safety Evals"
+image: "/images/blog/wpl-evals/wpl-lifecycle-eval-adaptability/cover.jpg"
+---
+
+Every AI fitness demo shows the same thing: describe a client, get a beautiful 12-week plan. What no demo shows is week 3 — when the client pulls a hamstring on Friday's deadlift, the physio says "no posterior-chain loading for 4–6 weeks," and the trainer types that into the chat.
+
+That moment is where AI coaching actually lives. Real clients get injured, get cleared, travel for two weeks, have a cardiac scare and get pulled back a phase. A plan that was right at week 1 is almost always wrong by week 6, because the client is no longer the person who walked in.
+
+So I built a benchmark for exactly this and ran it across 10 models from OpenAI, Anthropic, and Google. It's v0.7 of the open [wpl-eval](https://github.com/gymbile/wpl-eval) suite: five "lifecycle" scenarios, each an 8-turn trainer conversation where the client's state changes at scripted turns, with pass criteria that differ per turn and per week of the served plan. 100 trials, every raw model output committed to the repo, ~$60 to reproduce from scratch or $0 to re-derive offline.
+
+## The headline
+
+Same models, same conversations, two pipelines. Lane A is the raw LLM tracking the client's state from conversation text alone — how AI is deployed in most fitness apps today. Lane B is the same model routed through WPL, the open governance layer I've been building: the model writes its plan in a strict DSL, which is compiled, schema-validated, and passed through a rule engine that strips whatever the client's *current* structured profile forbids — re-applied on every regeneration.
+
+- **State-conditional safety violations: 210 raw → 10 governed.** A 21× reduction.
+- **Per-state criterion pass rate: 65% → 94%.**
+- **Clean trials: 46% → 84%.**
+
+But the aggregate isn't the interesting part. The failure *shape* is.
+
+## Removal is the blind spot
+
+LLMs are good at adding things. Ask for more posterior-chain volume, you get more posterior-chain volume. The lifecycle scenarios test the opposite: can the model *remove* something it already prescribed, when the client's state demands it?
+
+Almost universally, no.
+
+- In the injury scenario — hamstring strain reported at turn 4, in plain English, physio instructions quoted — **9 of 10 models kept prescribing deadlifts, RDLs, or kettlebell swings** in the affected weeks. Only gpt-5 passed raw.
+- In the travel scenario — "she's got a hotel gym for two weeks, dumbbells only" — **9 of 10 models kept barbell and machine work** in the travel weeks. Only Sonnet 4.6 passed raw.
+- In the cardiac scenario, models handled *loosening* (Phase II → Phase III clearance) noticeably better than *tightening* (chest tightness, back to Phase II). Regression leaked across all three vendors.
+
+Under the governance layer, all 10 models passed all of these. Not because the models got smarter — they emitted much the same thing — but because the rule engine doesn't care what the model emitted. The injured client's context forbids hip hinges; the hip hinges don't get served. When the clearance arrives, the rules relax and the same exercises come back. The toggle that raw models fail is exactly what a deterministic layer does trivially.
+
+## What surprised me
+
+I expected the consolidated-plan failure — ask at turn 8 for "the full 12 weeks with everything rolled in," and watch the model retroactively rewrite weeks 1–6 to match the current, cleared state, erasing the restrictions that were real at the time. **It never happened.** All 20 lanes preserved the historical constraints. Postpartum gating in particular seems genuinely well-represented in current training data. The measured gap is not history — it's removal and re-tightening.
+
+The other surprise is by now a pattern across every version of this eval: **raw safety does not improve with model capability.** On the lifecycle corpus, Claude Opus 4.7 (28 violations) and Gemini 3.5 Flash (27) sit near the top of the raw violation table while cheaper models do better; in v0.6 the two flagships were the two worst performers outright. The one exception is gpt-5, which is both the best raw state-tracker and perfect under governance. If you're buying model quality as a safety strategy, the data keeps saying you're buying the wrong thing.
+
+## What the governance layer still gets wrong
+
+I publish the residuals because a benchmark that hides them is marketing. Of the 10 governed violations:
+
+- **8 are progression failures, not safety failures.** After clearance, the model never re-introduced the now-allowed exercise — RDLs after the hamstring cleared, planks after the postpartum gate lifted. Enforcement can strip contraindicated work; it cannot force a model to *programme the comeback* a cleared client deserves. That asymmetry is inherent to fail-closed governance, and it now has a number: ~6% of the time, governed plans under-serve progression.
+- **2 are an intensity gap.** One flagship kept RPE-8 sessions in a cardiac Phase II plan, and the rules couldn't stop it — WPL rules today forbid *exercises*, they don't clamp *intensity*. A `cap_rpe` rule action is now a scoped v0.8 item because the eval measured exactly this hole.
+
+Also in the honest-limits column: one repeat per cell (treat per-model single-criterion differences as noise), the Gemini flagship slot is a preview model (Google retired the 2.5 tier for new API accounts mid-project, which cost me an afternoon), and the scenario criteria are clinician-cited but not yet clinician-validated — that review is scheduled next.
+
+## Why this matters beyond fitness
+
+The lifecycle result generalizes to any domain where an LLM maintains a long-lived artifact for a changing human — care plans, financial plans, learning curricula. The failure mode isn't hallucination and it isn't forgetting the system prompt. It's that **conversational state and served artifact drift apart**, and the model reliably fails in the direction of *keeping* what it already committed to. If your safety story is "the model will handle it," the model will handle additions and quietly fail removals.
+
+The fix that measured 21× isn't a better prompt. It's structure: make the model write through a grammar, keep the human's state in a machine-readable profile, and let a deterministic layer own the difference between them.
+
+All of it is open: [results and per-trial artifacts](https://github.com/gymbile/wpl-eval/blob/main/docs/V0_7_RESULTS.md), [the five scenarios](https://github.com/gymbile/wpl-eval/blob/main/scenarios/scenarios.yaml), [the interactive summary on wpl.dev](https://wpl.dev/eval/lifecycle). If you're a clinician or sports-medicine person and see something wrong in the scenario criteria — that's what the `[VERIFY]` markers are for. Issues welcome.
