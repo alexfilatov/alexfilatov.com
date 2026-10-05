@@ -22,6 +22,7 @@ const routes: RoutesConfig = {
   "/work": true,
   "/blog": true,
   "/gallery": false,
+  "/privacy": true,
 };
 
 const display: DisplayConfig = {

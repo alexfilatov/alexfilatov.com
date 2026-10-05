@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { Button, Column, Row, Text } from "@once-ui-system/core";
+import { Button, Column, Row, SmartLink, Text } from "@once-ui-system/core";
 
 const GA_ID = "G-G3MG697W8S";
 const KEY = "cookie-consent";
@@ -102,7 +102,8 @@ export function CookieConsent({ gaEnabled }: { gaEnabled: boolean }) {
           <Text id="cookie-consent-text" variant="body-default-s" onBackground="neutral-weak">
             May I use Google Analytics to see how this site is used? It sets cookies and sends
             visit data to Google. Nothing is loaded unless you accept. You can change this any
-            time via “Cookie settings” at the bottom of the page.
+            time via “Cookie settings” at the bottom of the page. See my{" "}
+            <SmartLink href="/privacy">Privacy policy</SmartLink>.
           </Text>
           <Row gap="8">
             <Button variant="secondary" size="s" fillWidth onClick={() => record("granted")}>
