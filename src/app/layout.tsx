@@ -3,6 +3,7 @@ import "@once-ui-system/core/css/tokens.css";
 import "@/resources/custom.css";
 
 import classNames from "classnames";
+import Script from "next/script";
 
 import {
   Background,
@@ -46,6 +47,17 @@ export default async function RootLayout({
     >
       <head>
         <script defer src="https://stats.mavlin.com/script.js" data-website-id="39eb1830-892d-49da-8c7e-68c6c8dd08e6" />
+        {process.env.VERCEL_ENV === "production" && (
+          <>
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-G3MG697W8S"
+              strategy="afterInteractive"
+            />
+            <Script id="ga4" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-G3MG697W8S');`}
+            </Script>
+          </>
+        )}
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
