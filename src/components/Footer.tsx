@@ -1,5 +1,6 @@
-import { Row, IconButton, SmartLink, Text } from "@once-ui-system/core";
+import { Row, IconButton, Text } from "@once-ui-system/core";
 import { person, social } from "@/resources";
+import { CookieSettingsLink } from "./CookieConsent";
 import styles from "./Footer.module.scss";
 
 export const Footer = () => {
@@ -25,6 +26,7 @@ export const Footer = () => {
           <Text onBackground="neutral-weak">© {currentYear}</Text>
           <Text paddingX="4">{person.name}</Text>
         </Text>
+        <CookieSettingsLink />
         <Row gap="16">
           {social.map(
             (item) =>

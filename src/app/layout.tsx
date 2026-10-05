@@ -3,7 +3,6 @@ import "@once-ui-system/core/css/tokens.css";
 import "@/resources/custom.css";
 
 import classNames from "classnames";
-import Script from "next/script";
 
 import {
   Background,
@@ -14,7 +13,7 @@ import {
   RevealFx,
   SpacingToken,
 } from "@once-ui-system/core";
-import { Footer, Header, RouteGuard, Providers, ReplicantWidget } from "@/components";
+import { Footer, Header, RouteGuard, Providers, ReplicantWidget, CookieConsent } from "@/components";
 import { baseURL, effects, fonts, style, dataStyle, home } from "@/resources";
 
 export async function generateMetadata() {
@@ -47,17 +46,6 @@ export default async function RootLayout({
     >
       <head>
         <script defer src="https://stats.mavlin.com/script.js" data-website-id="39eb1830-892d-49da-8c7e-68c6c8dd08e6" />
-        {process.env.VERCEL_ENV === "production" && (
-          <>
-            <Script
-              src="https://www.googletagmanager.com/gtag/js?id=G-G3MG697W8S"
-              strategy="afterInteractive"
-            />
-            <Script id="ga4" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-G3MG697W8S');`}
-            </Script>
-          </>
-        )}
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{
@@ -177,6 +165,7 @@ export default async function RootLayout({
           </Flex>
           <Footer />
           <ReplicantWidget />
+          <CookieConsent gaEnabled={process.env.VERCEL_ENV === "production"} />
         </Column>
       </Providers>
     </Flex>
