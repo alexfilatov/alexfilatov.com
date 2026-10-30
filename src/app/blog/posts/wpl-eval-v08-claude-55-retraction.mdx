@@ -1,0 +1,51 @@
+---
+title: "WPL Eval v0.8: Re-running the Safety Benchmark on Claude 5.5 — and Retracting My Own Headline"
+publishedAt: "2026-10-30"
+summary: "I re-ran the WPL fitness-AI safety eval on Claude Opus, Sonnet and Haiku 5.5 under the hardened v0.7 harness. The 3–5× governance effect held (43% unsafe raw → 11% governed), served plans jumped from 31% to 80%, and the 'flagships are least safe' claim from two previous write-ups turned out to be a measurement artifact. Here's what changed and what I got wrong."
+tag: "WPL Safety Evals"
+---
+
+Two write-ups ago I said that bigger, more expensive LLMs were *worse* at fitness safety than cheaper ones. The data looked clean: Claude Opus tripped more safety violations than Haiku on the same scenarios, two versions running. It made a good headline. It was wrong, and this post is partly about why.
+
+But first, the sweep.
+
+## What v0.8 is
+
+The [WPL eval](https://github.com/gymbile/wpl-eval) is a two-lane benchmark for AI personal training. Lane A is a raw LLM writing a training plan from a client's medical and lifestyle profile — how most fitness apps use AI today. Lane B is the same model routed through [WPL](https://wpl.dev), the open governance layer I've been building for [Gymbile](https://gymbile.com): the model writes its plan in a strict DSL, which is compiled, schema-validated, and passed through a rule engine that strips anything the client's structured profile forbids. Then both lanes are scored the same way.
+
+Earlier posts in this series covered the [v0.6 results](/blog/two-lane-llm-safety-benchmark), the [honesty audit](/blog/wpl-auditing-your-own-safety-evals) that de-circularized the rules and fixed the extractor, and the [v0.7 lifecycle corpus](/blog/wpl-lifecycle-eval-adaptability) that measured what happens when a client gets injured mid-programme.
+
+v0.8 does one thing: it re-measures the **static corpus** — 15 long-plan and 5 short-plan scenarios, single-turn and 8-turn multi-turn — on the Claude 5.5 generation (Opus, Sonnet, Haiku), under the hardened v0.7 harness. 240 trials, zero errors, $83 of inference. Every raw model output is committed to the repo, so you can re-derive every number offline for $0.
+
+This was a budgeted debt. The v0.6 Anthropic numbers were measured *before* the honesty fixes, and the methodology notes predicted the governed numbers would "come down, not up" once the circular rules were removed. I owed a re-run.
+
+## Five findings
+
+**1. The governance effect survived both the honesty fixes and a model generation.** Blacklist-only unsafe-trial rate across all 120 trials per lane: **43% raw → 11% governed**, a 3.9× reduction. On the long-plan corpus it's 47% → 11% single-turn and 38% → 11% multi-turn. The v0.6 figures were 42% → 11% and 42% → 13%. The de-circularized harness did not move them. That's the result I was most nervous about, and it held.
+
+**2. Served rate nearly tripled.** v0.6's biggest honest gap was that only 31% of Anthropic Lane B plans passed schema validation — the governance layer was safe partly because it refused to serve most plans. On Claude 5.5, **80%** of governed plans compile *and* validate, with every single trial compiling. I re-scored the frozen v0.6 outputs through the same installed library and got identical numbers, so this is the model generation writing better WPL, not a library change. Fail-closed is only a safety story if plans actually get served; now they do.
+
+**3. Raw safety does not change with model tier — in either direction.** This is the retraction. Opus 5.5 trips the per-trial unsafe metric most often (16 of 30 long-plan trials vs 10 for Haiku), exactly as Opus 4.7 did. But Opus also writes plans twice as long and prescribes 55% more exercises. It has more chances to trip once. Normalised **per 100 prescribed exercises**, the three tiers are Opus 0.54, Haiku 0.65, Sonnet 0.70 contraindicated — indistinguishable, with heavily overlapping confidence intervals, and all three pick the same number of distinct contraindicated items. The per-trial ranking was plan-length exposure plus single-repeat noise. **The "flagships are worst raw" framing in the v0.6 and v0.7 write-ups is retracted.** The defensible claim is weaker and more useful: buying a higher tier does not buy raw safety, and dropping a tier does not lose it.
+
+**4. The remaining governed failures are almost entirely intensity.** Of the blacklist violations the governed lane still served, 574 were RPE or %1RM over a scenario's cap and **5** were exercises. Exercise stripping works: Lane A served 86 contraindicated exercises, Lane B served 5 (17×). The leak is the already-known `cap_rpe` gap — WPL rules can forbid an exercise but can't yet clamp an intensity. Two scenarios, severe dysmenorrhea and endometriosis flares, account for nearly all of it on every model. The eval now has 11 specific cells to verify the fix against.
+
+**5. Multi-turn drift collapses under governance.** In 8-turn conversations, raw models lost a constraint the client had already stated in 17 of 45 trials (38%); governed, 2 of 45 (4%). Haiku 5.5 also produced the sweep's only refusals — three Lane A turns where it declined a trainer's unsafe request outright (hot yoga for a heat-intolerant perimenopausal client, plyometrics during an endometriosis flare, pushing cardio intensity post-MI). I counted those as refusals, not as clean plans, and read all three to confirm they were genuine declines.
+
+## What "11% unsafe" actually means
+
+It's a harm rate with every trial in the denominator, not a success rate. Of 120 governed trials: 62% served clean, 8% served with a structural flag (rest days, progression) that is reported but not yet prevented, 11% served with a contraindication, and 20% weren't served at all because the compiled plan failed validation and the system failed closed. On a *utility* measure — delivered a plan with no contraindication — the governed lane scores 69% vs 57% raw. The 20% not-served is single-shot; production retries before failing closed, which the eval doesn't model. On Claude 4.x that figure was around 70%.
+
+## Honest limits
+
+- Anthropic only. OpenAI and Gemini lanes aren't refreshed; the cross-vendor claims still rest on v0.6 and v0.7.
+- Claude 5.x can't run without adaptive thinking and rejects temperature, so nothing here is reproducibly deterministic across runs. Costs include thinking tokens.
+- One repeat per cell. Per-model differences of one or two trials are inside the intervals. The Lane A/B gap is not.
+- Clinician review of every blacklist and criterion is still pending.
+
+## Why I'm publishing the retraction prominently
+
+Because the retracted claim was the most quotable thing in the series, and that's exactly why it deserved the most scrutiny. "Bigger models are less safe" is a great line. "Raw safety is flat across tiers and the fix is structural, not model selection" is a better finding — it means the governance layer is doing the work, not vendor choice — but it's less fun to say. A research program that only ever shows you its cleanest number is asking you to trust its process blind. Showing the previous number, and exactly what changed it, is the closest a solo researcher gets to peer review.
+
+The full write-up with every table is in [`docs/V0_8_RESULTS.md`](https://github.com/gymbile/wpl-eval/blob/main/docs/V0_8_RESULTS.md), the interactive summary is on [wpl.dev/eval](https://wpl.dev/eval), and the production system this all feeds is [Gymbile](https://gymbile.com), where real trainers and real clients are the reason the numbers have to be right.
+
+Next: `cap_rpe` lands in the published validator, and v0.8's 11 intensity cells become the regression test.

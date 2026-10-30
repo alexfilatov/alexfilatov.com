@@ -1,0 +1,53 @@
+---
+title: "LoyalDeck: Turning a Coffee Shop Loyalty App Into a Platform for Every Local Business"
+publishedAt: "2026-10-30"
+summary: "BaristaCard was built for coffee shops. Then bakeries, barbers and car washes asked for it. LoyalDeck is the horizontal digital loyalty platform that came out of that — one engine, many verticals, each with its own brand and vocabulary. Here's how a vertical product becomes a platform, and the bugs that bite when you try."
+tag: "Projects"
+---
+
+The first sign was a bakery. They'd seen [BaristaCard](https://baristacard.com) at the café next door, signed up, and were happily giving out "Coffee Beans" for croissants. Then a barbershop. Then a car wash asked whether the ninth wash could be free.
+
+A product built for coffee shops was being used by people who didn't sell coffee, and the only thing stopping more of them was the word "coffee" on every screen.
+
+[LoyalDeck](https://loyaldeck.com) is what I built in response: a horizontal digital loyalty platform for any local business, where BaristaCard becomes one vertical — one card in the deck.
+
+## The thesis
+
+When I audited the BaristaCard codebase for how much was actually coffee-specific, the answer was about 10%. The stamp cycle, reward mechanics, points accumulation, level progression, Apple and Google Wallet passes, the QR scanning flow, the guest-first account model, billing, payouts, staff management, subscriptions — all of it works identically whether the reward is a flat white, a haircut or a car wash. The data model was already `businesses → venues → deals`, and the deal type already had a docstring saying "e.g. Coffee, Pizza, Bakery."
+
+The 10% that was coffee: brand name, colours, the points currency name, the default reward noun, example copy, and roughly three thousand translatable strings that mention cafés, baristas and beans.
+
+So the architecture is: one shared LoyalDeck engine, with per-vertical branding, copy and themes layered on top. BaristaCard.com stays the coffee vertical, "powered by LoyalDeck." LoyalDeck.com is the generic platform and the home for every industry that doesn't have its own card yet.
+
+## What a business gets
+
+The same thing a café gets from BaristaCard, with the vocabulary changed:
+
+- **Digital stamp cards** customers add to Apple Wallet or Google Wallet by scanning a QR code. No app download — the single biggest reason small businesses abandon loyalty tools.
+- **Points and levels** that work across visits.
+- **Industry presets** so a new business doesn't start from a blank form. A bakery gets a 9-stamp card with a sensible reward; a nail salon gets a 5-visit card, because nobody has nine manicures before expecting something back.
+- **Broadcasts** to recent customers, **promo codes**, **scratch cards**, **referrals**, **staff tipping**, **subscription deals** — the whole BaristaCard feature set.
+- A **free plan** for a single location, with paid tiers for multi-location and the advanced mechanics.
+
+LoyalDeck launched with dedicated pages for fourteen industries: coffee shops, bakeries, barbershops, nail salons, car washes, juice bars, pet groomers, yoga and fitness studios, florists, pizzerias, ice cream shops, laundromats, bookshops and gyms. Each page answers the question the owner is actually typing into Google — "car wash loyalty program," "barbershop punch card" — with a straight answer and a reward table, rather than a generic landing page with the industry name swapped in.
+
+## The hard part was the words
+
+Branding a vertical is easy. Un-branding one is where the bugs live.
+
+BaristaCard had around three thousand strings that said café, barista, coffee or beans. The lazy approach — a find-and-replace at render time that swaps "café" for "business" — is what I tried first, and it produced a satisfyingly short diff and one genuinely nasty bug. The rewrite ran on templated strings *after* placeholders had been substituted with internal tokens, and the token for a binding called `cafe` matched the rewrite rule. The business's name was replaced with the literal word "business" plus a pair of invisible null bytes, on thirteen screens, including the one where an owner links their Stripe account. A code review caught it before it shipped. The fix was to make the placeholder tokens carry no vocabulary at all.
+
+Two more lessons from the same review:
+
+- **Translation and de-branding don't compose.** The neutraliser ran after gettext, so German and French strings came out half-rewritten — "Mein Business" — because the rewrite only knew English vocabulary. LoyalDeck now ships English-only until the translations are redone properly, which is the honest answer rather than mixed-language copy.
+- **Feature gating has to be complete, not mostly complete.** BaristaCard has a café TV mode — a leaderboard screen for the shop's wall. Every route was gated behind a feature flag for LoyalDeck. Every route except one nav link, which bounced LoyalDeck owners to the homepage with a "Not found" flash. The platform audit skills I'd normally use for a client project turned out to matter just as much for my own.
+
+The broader point: a vertical product becoming a platform is not a refactor. It's a product with a second brand, a second vocabulary, and a second set of defaults, sharing one codebase. Every default that was silently "coffee" has to become an explicit decision, and the review process has to assume you missed some.
+
+## Why horizontal, why now
+
+Every local business with repeat customers has the same drawer of abandoned paper punch cards and the same problem: they're spending money on loyalty and learning nothing from it. The big chains have loyalty departments. The barbershop has a Sharpie. LoyalDeck's job is to give the barbershop the chain's tooling at a price that rounds to free.
+
+And the economics of a platform are better than the economics of a vertical. The engine is built; each new vertical is branding, copy, a preset and a landing page. The second card in the deck is already planned.
+
+LoyalDeck is live at [loyaldeck.com](https://loyaldeck.com). If you run a bakery, salon, car wash, studio or any business where people come back, you can set up a digital loyalty card in a few minutes, free. And if you run a coffee shop, you want [BaristaCard](https://baristacard.com) — same engine, with the Coffee Beans.

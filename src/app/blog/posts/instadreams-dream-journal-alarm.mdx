@@ -1,0 +1,59 @@
+---
+title: "Instadreams: An Alarm Clock That Catches Your Dreams Before They Fade"
+publishedAt: "2026-10-28"
+summary: "Dreams evaporate within minutes of waking, and no dream journal app fixes that because the hard part isn't writing — it's remembering to capture at all. Instadreams is an alarm clock whose snooze button is 'record your dream.' AI transcribes, titles and illustrates it by morning. Here's the thinking behind it."
+tag: "Projects"
+---
+
+You wake up at 4am from something vivid — a flooded staircase, a conversation with someone who's been dead for years, a city that doesn't exist. You think "I'll remember this." You go back to sleep.
+
+By the time the alarm goes off, it's gone. Not faded. *Gone.* Maybe a texture remains, a feeling of having been somewhere, but the content is unrecoverable.
+
+This happens to everyone, every night, and the standard advice — "keep a dream journal by your bed" — fails for a reason that has nothing to do with journaling. The hard part isn't writing the dream down. The hard part is that a half-asleep person at 4am will not open an app, find the right screen, and type. The habit never forms, so the journal stays empty.
+
+[Instadreams](https://instadreams.com) is my attempt to solve the actual problem.
+
+## The alarm is the capture mechanism
+
+Here's the core idea: Instadreams is an alarm clock. A credible one — multiple alarms, weekday repeat patterns, labels, configurable snooze, the things that let you actually replace the Clock app. But when it rings, the snooze button says **Record dream**.
+
+You get your nine minutes. The price is telling me what you dreamt.
+
+Voice is the only input a half-asleep person can manage. No typing, no decisions, no navigating. Tap, mumble, back to sleep. On iPhone this uses Apple's AlarmKit, which was the one piece of the thesis that could have sunk the whole product — an alarm that doesn't break through Silent mode and Focus is not an alarm — so the first thing I built was a throwaway spike to prove it fires, breaks through, and launches straight into a recorder from a custom alarm button. It passed, on a physical device. Then I built the app.
+
+The recording is committed to on-device storage the instant it stops, before any network request. "Your dream didn't save because you were on the subway" is a fatal failure for a product whose entire premise is that the moment is unrecoverable.
+
+## What happens by morning
+
+A background pipeline takes the recording and:
+
+1. **Transcribes** it.
+2. **Cleans** it into readable prose — without inventing anything. A 4am mumble is full of "and then, um, I think it was my old school but also not" and the cleaned version keeps the content and drops the noise.
+3. **Titles** it.
+4. **Generates one cover image** keyed to the dream's own concrete details.
+
+That last step is the core of the product, not decoration. Memory is visual. A picture of *the flooded staircase* brings the dream back in a way a paragraph never will — which also means a generic AI dreamscape is useless. The image has to be faithful to *this* dream's specifics or it fails as a mnemonic.
+
+By morning you open the app and there's a journal entry with a title, a picture, the cleaned story, the raw transcript, and your own 4am voice to play back. That last one turns out to be the strongest memory trigger of all.
+
+## What's free and what isn't
+
+Capturing a dream must never be rate-limited. If the app refuses to record on the one night that matters, it has failed at its own purpose. So recording, transcription, cleanup, titling, the archive and full-text search are **free and unlimited**, with a generous monthly allowance of cover images.
+
+The paid upgrades are the things that turn a dream into an artifact:
+
+- **Comics.** A dream with real narrative structure becomes a 3–8 panel comic page — storyboarded, cast-consistent, composed on-device so the typography and captions are crisp. This is what you share.
+- **Alarm melodies.** A library of original melodies to wake up to, seven free and the rest in albums. Mastered quiet with a slow fade-in, because the whole point is to surface gently enough that the dream is still there.
+
+## What Instadreams deliberately is not
+
+- **Not a sleep tracker.** That's a different product, competing with hardware-grade accuracy, and it reclassifies your data as health data. We don't track your sleep; we catch your dreams.
+- **Not a dream interpreter.** Symbolism dictionaries invite nonsense. The app records what you dreamt; what it means is yours.
+- **Not social.** No feed, no followers. Private by default, no training on your content, and sharing is always an explicit per-dream action. Dreams are the most intimate data a person has, and any hesitation at 4am kills the recording — so trust directly serves capture rate.
+- **No streaks.** You don't tune a habit loop before knowing the base habit exists. The alarm *is* the habit mechanism.
+
+## Where it is
+
+The app is built in Flutter with native Swift and Kotlin alarm modules, on a Phoenix backend — the same boring, reliable stack behind my other products, because the novel parts here are the capture ritual and the art direction, and the boring layers should stay boring.
+
+Instadreams is heading to the App Store and Google Play now. The site is live at [instadreams.com](https://instadreams.com) if you want to be told when it lands. If you've ever lost a dream you wanted to keep, this is for you.
