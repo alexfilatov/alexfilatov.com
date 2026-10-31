@@ -1,0 +1,54 @@
+---
+title: "BaristaCard: What Two Years of Building Digital Loyalty for Coffee Shops Taught Me"
+publishedAt: "2026-10-26"
+summary: "BaristaCard started as a digital stamp card for independent coffee shops — scan a QR, collect stamps, get a free coffee, no app download. Two years on it has Apple and Google Wallet cards, subscriptions, staff tipping, scratch cards and an AI assistant for owners. Here's what the paper punch card was hiding, and what actually drives retention."
+tag: "Projects"
+---
+
+Every independent coffee shop has a drawer of paper stamp cards. Some are the shop's own, blank and waiting. Some are customers' cards that got left on the counter, three stamps in, never to be seen again. The drawer is the whole problem in miniature: the shop is spending money on loyalty and learning nothing from it.
+
+[BaristaCard](https://baristacard.com) started as the simplest possible replacement. Two years in, it's a full loyalty platform for coffee shops, and it taught me more about retention than any SaaS dashboard ever did.
+
+## The original idea
+
+Replace the paper punch card with a QR code. Customer scans it at the till, a digital stamp lands on their card, ninth coffee is free. No app to download — this was non-negotiable, because the single biggest complaint about every competitor was "I'm not installing an app for one coffee shop." Guest-first, so a customer starts collecting stamps before they've ever registered.
+
+For the owner: a dashboard that finally answers "is this working?" How many stamps today, how many rewards redeemed, who are the regulars, who stopped coming.
+
+That version shipped and worked. What happened next was the interesting part.
+
+## What the paper card was hiding
+
+**Owners don't want a loyalty program; they want a reason to message their regulars.** The analytics were nice. What owners actually used daily was the broadcast feature — "new seasonal menu, come try it" — to the customers who'd stamped in the last month. The stamp card turned out to be a consent mechanism for a relationship.
+
+**Customers don't want to find your card; they want it to find them.** Adding stamp cards to **Apple Wallet and Google Wallet** changed usage more than any feature before or after. The card sits next to their boarding passes, and a lock-screen notification when they walk past the shop does more than any email.
+
+**Staff are part of the loyalty loop.** Regulars come back for the barista, not the beans. So BaristaCard grew a staff side: baristas award stamps with a quick scan, and each gets a **personal tip page** with a QR code — Apple Pay, Google Pay, card, preset amounts — so cashless customers can tip the person who made their drink. That feature later became its own product, [Tippidy](/blog/tippidy-digital-tip-jar).
+
+![BaristaCard staff app: a barista's tips list with customer notes, and the personal Tip Kit QR code customers scan to tip](/images/blog/baristacard/staff-tips-and-tip-kit.png)
+
+**One mechanic gets boring.** Stamps are the foundation, but the shops that kept engagement up were the ones that varied it. So: **Coffee Beans**, a points currency earned on every purchase; **levels** that regulars climb; **scratch cards**, a digital scratch-to-win reward; **promo codes and scheduled campaigns**; and **referrals**, where owners who bring in other owners become ambassadors.
+
+**Subscriptions are the quiet revenue model.** "Unlimited black coffee for £25 a month" is a thing cafés want to offer and have no way to run. BaristaCard added subscription deals paid through Stripe, verified at the counter with a rotating QR code that expires every 30 seconds so a screenshot can't be shared. Predictable monthly revenue for a café is transformational.
+
+## The AI layer, carefully
+
+Owners of independent cafés are not analysts. So BaristaCard has an **owner assistant** that answers "how was last week compared to the week before?" in plain language, forecasts footfall, and drafts the broadcast message. It also generates a blog for the shop. None of this is the product; it's what makes the data the product collects usable by someone with twelve minutes between the morning rush and the lunch rush.
+
+![BaristaCard stamp card being added to Apple Wallet, and the owner AI assistant answering how the café did this week](/images/blog/baristacard/wallet-card-and-ai-assistant.png)
+
+## Pricing
+
+Free forever for a single-location café, with the core loyalty features. A paid tier adds tipping, multi-location management and the advanced mechanics. Independent shops shouldn't need to budget for software that helps them compete with chains that have whole loyalty departments.
+
+## What it's built on
+
+Elixir and Phoenix LiveView, Postgres, Oban for background jobs, Stripe for subscriptions and tips, Apple PKPass and Google Wallet integrations, a REST API for the mobile apps, and LangChain for the AI features. Deployed on Fly.io. It's the same stack as my other products because the stack isn't where the risk is.
+
+## What came next
+
+The interesting thing about two years of building a coffee shop loyalty platform is realising how little of it is about coffee. Stamp cycles, points, levels, wallet passes, QR scanning, subscriptions, staff management, billing, payouts — about 90% of the engine is vertical-agnostic. A bakery, a barbershop, a car wash and a yoga studio all have the same drawer of abandoned paper cards.
+
+That realisation became [LoyalDeck](/blog/loyaldeck-loyalty-platform-for-every-business), the horizontal platform BaristaCard now runs on. BaristaCard stays the coffee vertical — the brand, the Coffee Beans, the specific copy a café owner expects — powered by a shared engine underneath.
+
+If you run a coffee shop and you've got that drawer, [BaristaCard](https://baristacard.com) is free to start. The project page with screenshots is [here](/work/baristacard).

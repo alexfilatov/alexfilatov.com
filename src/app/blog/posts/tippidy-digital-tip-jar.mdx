@@ -1,0 +1,59 @@
+---
+title: "Tippidy: Building a Digital Tip Jar for Hospitality Workers"
+publishedAt: "2026-10-27"
+summary: "Cash is disappearing from cafés and bars, and tips are disappearing with it. Tippidy is a QR-code tipping platform where baristas, bartenders and kitchen crews get a personal tip page, take card and Apple Pay tips with no app download, and split tips fairly across a crew. Here's why I built it and how the money model works."
+tag: "Projects"
+---
+
+I pay for everything by card. So does everyone I know. And every time a barista hands me a flat white and I see the little paper cup with "TIPS" scrawled on it, I feel a flicker of guilt — because I have no coins, and the card machine already closed the transaction.
+
+That tip is gone. Not because I didn't want to give it, but because the moment and the mechanism didn't line up.
+
+Multiply that by every cashless customer in every café, bar, food truck and hotel in the country and you get a quiet pay cut for the people who can least afford one. [Tippidy](https://tippidy.com) is my attempt to fix that: a digital tip jar for hospitality teams.
+
+## What Tippidy is
+
+Tippidy is a cashless tipping platform. A hospitality worker signs up — no venue approval, no manager involved — and gets a personal tip page at `tippidy.com/their-name` with a QR code. A customer scans it, picks an amount, and pays with a card, Apple Pay or Google Pay. No app to download, no account to create. The tip goes to the worker, and payouts arrive in their bank weekly.
+
+That's the whole pitch for the tipper: scan, tap, done. The interesting part is on the worker's side.
+
+![Tippidy homepage: Get tipped digitally, we take no cut, with a sample tip page for a barista showing £2, £5 and £10 presets](/images/blog/tippidy/homepage-hero.png)
+
+### Crews: tipping is personal, distribution is a team sport
+
+Customers tip *people*. The research on this is consistent — people tip more when there's a human connection: the bartender who chatted, the barista who remembered their order. But hospitality runs on teams. The dishwasher never meets the customer, and the person on the till is often not the person who made the drink.
+
+So Tippidy has **crews**: a group of workers who share a tip page and split what comes in. Crews have invite codes, shift clock-in/out, and configurable split weights, so a venue can decide that the kitchen gets a share even though nobody ever tips the kitchen directly. The customer experience stays personal; the distribution stays fair.
+
+Crews also get a real-time group chat and direct messages, because once you've got a team sharing money, they need a place to talk about it that isn't a WhatsApp group with the manager in it.
+
+### Everything else that turned out to be necessary
+
+- **Multi-currency.** Tippidy runs in 29 locales with daily exchange rates. A crew in Lisbon and a worker in London shouldn't need different products.
+- **Apple Wallet and Google Wallet passes** for the tip page QR code, so a worker can flash their phone at a customer rather than printing a sticker.
+- **OAuth sign-in** with Google, Facebook and Apple, because nobody on a shift break wants to invent a password.
+- **An admin panel** with KPIs, country and currency configuration, and impersonation for support.
+
+![Tippidy for workers: no cut of your tips, invite your crew, get paid fast via Stripe, and the tip QR code in Apple Wallet](/images/blog/tippidy/for-workers.png)
+
+Under the hood it's Elixir and Phoenix LiveView, Postgres, Oban for every money-moving background job, and Stripe Connect for payments and payouts. The same stack as [BaristaCard](/blog/baristacard-digital-loyalty-coffee-shops), which is not a coincidence — the two products live in the same hospitality ecosystem and share a lot of plumbing.
+
+## The money model, honestly
+
+This is the part most tipping platforms are cagey about, so let me be explicit.
+
+Tippidy takes **0% of the tip**. The tipper pays the tip plus a small service fee on top, and that service fee is what covers card processing and keeps the platform running. The worker's tip is reduced only by the card processing cost on their portion — nothing else. The earlier version of the model had Tippidy absorbing the entire Stripe fee out of its own cut, which sounds generous until you run the numbers: Stripe's fixed per-charge fee dominates small tips, and the platform lost money on every tip under about six pounds. Which is most tips. A business that loses money on its core transaction isn't a business, so the fee policy was reworked so that every tip is sustainable and the worker still never pays a platform cut.
+
+I think that's the honest version of "100% to the worker": the platform takes nothing from the tip, and the only deduction is the card network's.
+
+## Why I think this spreads
+
+Every network product has a viral object — Instagram's is the photo, Airbnb's is the listing. Tippidy's is the tip page. It travels on a printed QR sticker by the till, in a TikTok bio, in a link-in-bio, on a Wallet pass. Workers bring it to venues, not the other way round; once a few staff are getting tipped through it, the owner notices and onboards the whole crew.
+
+There's also a category nobody has quite built yet: creator-style tipping for real-world workers. The burger kitchen with 200k TikTok followers has no way for a viewer in another city to say "that looked great, here's a pound." A crew tip page does that.
+
+## Where it is
+
+Tippidy is live at [tippidy.com](https://tippidy.com). The web app is the product today; a worker-facing mobile app for iOS and Android is designed and in progress. If you run a café, bar or kitchen and your team is losing tips to the cashless economy, the sign-up takes two minutes and the first tip page is free.
+
+And if you're a developer curious how a two-sided payments product gets built solo on Elixir — the crews, the ledger, the exact-fee split, the wallet passes — that's a post of its own, coming soon.
