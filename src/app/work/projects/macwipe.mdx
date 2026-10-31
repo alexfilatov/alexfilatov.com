@@ -1,0 +1,41 @@
+---
+title: "MacWipe - A Mac Cleaner Without Scare Tactics"
+publishedAt: "2026-10-29"
+summary: "Native macOS cleaner that finds caches, large files, duplicates, app leftovers and adware, shows every item before anything is removed, and never invents a health score. App Store and Direct editions."
+images:
+  - "/images/projects/macwipe/cover.png"
+  - "/images/projects/macwipe/smart-scan.png"
+  - "/images/projects/macwipe/cleanup.png"
+team:
+  - name: "Alex Filatov"
+    role: "Founder"
+    avatar: "/images/avatar.png"
+    linkedIn: "https://www.linkedin.com/in/alexfilatov"
+link: "https://macwipe.com"
+---
+
+## Overview
+
+[MacWipe](https://macwipe.com) is a native macOS app that frees up disk space safely. One Smart Scan checks caches, logs, large and old files, duplicates, app leftovers, mail attachments, browser traces and known adware. You review what it found, it moves it to the Trash, and you can put it back.
+
+## The Problem
+
+Every Mac cleaner leads with alarm: invented health scores, "3 threats found", red badges. The category's acquisition funnel runs on fear, and it works even on people who know better.
+
+## The Solution
+
+- **No health score, anywhere.** Real numbers only: space available, space safely clearable, last scan time
+- **Show the work.** Every figure expands to real files you can open or reveal in Finder
+- **Nothing lost by accident.** Trash by default, quarantine for adware, restore for everything, permanent deletion only when you empty the Trash
+- **Honest about limits.** In the App Store sandbox the app says plainly which folders it was not allowed to read
+- **Two editions.** A sandboxed App Store edition, and a notarised Direct edition licensed through Stripe with Sparkle updates
+
+Scanning and the first clean are free. After that it is about £2 a month on an annual plan, covering up to three Macs.
+
+## Tech Stack
+
+SwiftUI with AppKit where needed, StoreKit, Stripe licensing with magic-link activation, Sparkle.
+
+## Read More
+
+[MacWipe: A Mac Cleaner That Shows Its Work Instead of Scaring You](/blog/macwipe-mac-cleaner-without-scare-tactics).
