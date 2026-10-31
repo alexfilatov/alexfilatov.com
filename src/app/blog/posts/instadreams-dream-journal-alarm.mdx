@@ -13,6 +13,12 @@ This happens to everyone, every night, and the standard advice — "keep a dream
 
 [Instadreams](https://instadreams.com) is my attempt to solve the actual problem.
 
+## Fourteen years of wanting this
+
+I've wanted this product since 2012. I bought the domain back then and built the first version as a Telegram bot: a plain journal you typed a dream into from the Telegram app. No voice, no transcription, no pictures, just text in and text out. It had about one and a half users who genuinely used it, and I was one of them. Typing while half-asleep is exactly the step that doesn't work, so the bot proved the problem without solving it.
+
+What changed is the AI. Speech-to-text that copes with a 4am mumble, language models that can clean that mumble into prose without inventing anything, and image models that can draw the actual flooded staircase are all new. The capture ritual I wanted in 2012 finally became buildable, so I resurrected it.
+
 ## The alarm is the capture mechanism
 
 Here's the core idea: Instadreams is an alarm clock. A credible one — multiple alarms, weekday repeat patterns, labels, configurable snooze, the things that let you actually replace the Clock app. But when it rings, the snooze button says **Record dream**.
@@ -31,6 +37,8 @@ A background pipeline takes the recording and:
 2. **Cleans** it into readable prose — without inventing anything. A 4am mumble is full of "and then, um, I think it was my old school but also not" and the cleaned version keeps the content and drops the noise.
 3. **Titles** it.
 4. **Generates one cover image** keyed to the dream's own concrete details.
+
+![Instadreams app: the alarm with a Record dream snooze button, the one-tap recorder, and a dream written up and illustrated by morning](/images/blog/instadreams/alarm-recorder-detail.png)
 
 That last step is the core of the product, not decoration. Memory is visual. A picture of *the flooded staircase* brings the dream back in a way a paragraph never will — which also means a generic AI dreamscape is useless. The image has to be faithful to *this* dream's specifics or it fails as a mnemonic.
 

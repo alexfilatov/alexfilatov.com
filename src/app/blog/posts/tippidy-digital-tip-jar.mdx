@@ -17,6 +17,8 @@ Tippidy is a cashless tipping platform. A hospitality worker signs up — no ven
 
 That's the whole pitch for the tipper: scan, tap, done. The interesting part is on the worker's side.
 
+![Tippidy homepage: Get tipped digitally, we take no cut, with a sample tip page for a barista showing £2, £5 and £10 presets](/images/blog/tippidy/homepage-hero.png)
+
 ### Crews: tipping is personal, distribution is a team sport
 
 Customers tip *people*. The research on this is consistent — people tip more when there's a human connection: the bartender who chatted, the barista who remembered their order. But hospitality runs on teams. The dishwasher never meets the customer, and the person on the till is often not the person who made the drink.
@@ -31,6 +33,8 @@ Crews also get a real-time group chat and direct messages, because once you've g
 - **Apple Wallet and Google Wallet passes** for the tip page QR code, so a worker can flash their phone at a customer rather than printing a sticker.
 - **OAuth sign-in** with Google, Facebook and Apple, because nobody on a shift break wants to invent a password.
 - **An admin panel** with KPIs, country and currency configuration, and impersonation for support.
+
+![Tippidy for workers: no cut of your tips, invite your crew, get paid fast via Stripe, and the tip QR code in Apple Wallet](/images/blog/tippidy/for-workers.png)
 
 Under the hood it's Elixir and Phoenix LiveView, Postgres, Oban for every money-moving background job, and Stripe Connect for payments and payouts. The same stack as [BaristaCard](/blog/baristacard-digital-loyalty-coffee-shops), which is not a coincidence — the two products live in the same hospitality ecosystem and share a lot of plumbing.
 

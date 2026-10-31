@@ -27,11 +27,15 @@ It runs a Smart Scan, shows you what it found, and removes it only after you've 
 
 That's the whole loop. Scan, review, select, confirm, clean, see the number. One obvious next step on every screen.
 
+![MacWipe Smart Scan results: 9.2 GB safe to clear, broken down into Cleanup, Files, Apps and Protection, with a Move 9.2 GB to Trash button](/images/blog/macwipe/smart-scan-results.png)
+
 ## The rules I built it around
 
 **Nothing is lost by accident.** Removals go to the Trash by default, or to quarantine for adware matches, and can be restored. Permanent deletion happens only when you explicitly empty the Trash. Every action is logged.
 
 **Show the work.** Every number traces back to files you can see, open, or reveal in Finder. "7.91 GB of System Junk" means 133,480 real items you can expand and inspect, not a figure from a progress bar animation.
+
+![MacWipe Cleanup screen listing app caches, Xcode build files, logs and old updates with sizes, each one reviewable before removal](/images/blog/macwipe/cleanup.png)
 
 **Honest about limits.** MacWipe runs in the App Store sandbox, which means it can only read the folders you grant it. When a scope isn't available, the app says so plainly. It never shows "All clean" for a folder it wasn't allowed to look at — which is a surprisingly common trick in this category.
 
@@ -40,6 +44,8 @@ That's the whole loop. Scan, review, select, confirm, clean, see the number. One
 **Calm voice.** The button says "Move 7.9 GB to Trash", not "Clean". It names the action. No fear-selling, no performance claims about making your Mac "run like new."
 
 On adware specifically: MacWipe 1.0 ships an "Adware & Unwanted Apps" module that checks code signatures (unsigned, revoked, not notarized), checks persistence (launch agents, login items, browser extensions), and matches known-bad bundle and team IDs — with quarantine and restore. It does not claim to be antivirus, and it says so.
+
+![MacWipe Protection screen showing a known adware login item and an unsigned app in Downloads, with quarantine and restore](/images/blog/macwipe/protection.png)
 
 ## Two editions
 

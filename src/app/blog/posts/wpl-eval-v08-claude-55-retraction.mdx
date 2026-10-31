@@ -17,6 +17,8 @@ Earlier posts in this series covered the [v0.6 results](/blog/two-lane-llm-safet
 
 v0.8 does one thing: it re-measures the **static corpus** — 15 long-plan and 5 short-plan scenarios, single-turn and 8-turn multi-turn — on the Claude 5.5 generation (Opus, Sonnet, Haiku), under the hardened v0.7 harness. 240 trials, zero errors, $83 of inference. Every raw model output is committed to the repo, so you can re-derive every number offline for $0.
 
+![The interactive WPL eval explorer on wpl.dev: pick a scenario and a model, read the trainer's turns, and compare what the raw LLM lane and the WPL lane produced](/images/blog/wpl-evals/wpl-eval-v08-claude-55-retraction/wpl-eval-explorer.png)
+
 This was a budgeted debt. The v0.6 Anthropic numbers were measured *before* the honesty fixes, and the methodology notes predicted the governed numbers would "come down, not up" once the circular rules were removed. I owed a re-run.
 
 ## Five findings
