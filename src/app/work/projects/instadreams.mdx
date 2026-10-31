@@ -1,0 +1,39 @@
+---
+title: "Instadreams - An Alarm Clock That Catches Your Dreams"
+publishedAt: "2026-10-28"
+summary: "A dream journal built into an alarm clock. The snooze button is 'Record dream'. AI transcribes, cleans up, titles and illustrates the dream by morning. Free unlimited capture, paid comics and alarm melodies."
+images:
+  - "/images/projects/instadreams/cover.png"
+team:
+  - name: "Alex Filatov"
+    role: "Founder"
+    avatar: "/images/avatar.png"
+    linkedIn: "https://www.linkedin.com/in/alexfilatov"
+link: "https://instadreams.com"
+---
+
+## Overview
+
+[Instadreams](https://instadreams.com) is an alarm clock whose snooze button says **Record dream**. You get your nine minutes; the price is a few mumbled sentences about what you dreamt. By morning the app has transcribed the recording, cleaned it into readable prose, given it a title and painted a cover image keyed to the dream's own details.
+
+## The Problem
+
+Dreams evaporate within minutes of waking. Dream journal apps fail because a half-asleep person at 4am will not open an app and type. The habit never forms, so the journal stays empty.
+
+I have wanted this product since 2012, when I bought the domain and built the first version as a Telegram bot. It had about one and a half real users. The capture step was the problem, and it took speech-to-text, language models and image models to make it buildable.
+
+## The Solution
+
+- **Alarm-first capture**: a real alarm clock on Apple AlarmKit that breaks through Silent mode and Focus, with voice as the only input
+- **Saved on device the instant recording stops**, before any network request
+- **AI pipeline**: transcription, faithful cleanup, title, one cover image per dream
+- **Free and unlimited capture**, with paid comics (3 to 8 panel pages from a dream) and original alarm melodies
+- **Private by default**: no feed, no interpretation, no sleep tracking, no training on your content
+
+## Tech Stack
+
+Flutter with native Swift and Kotlin alarm modules, Phoenix backend. Heading to the App Store and Google Play.
+
+## Read More
+
+[Instadreams: An Alarm Clock That Catches Your Dreams Before They Fade](/blog/instadreams-dream-journal-alarm).
